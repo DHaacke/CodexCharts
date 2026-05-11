@@ -43,6 +43,7 @@
     "x_axis_value_color": "#2f6f5d",
     "y_axis_label_color": "#184f3f",
     "y_axis_value_color": "#2f6f5d",
-    "legend_text_color": "#184f3f",    "series_colors": ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2"]
+    "legend_text_color": "#184f3f",    
+    "series_colors": ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2"]
   }
 }

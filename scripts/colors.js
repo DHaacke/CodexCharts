@@ -140,6 +140,7 @@ const colors = {
   "whitesmoke": "#F5F5F5",
   "yellow": "#FFFF00",
   "yellowgreen": "#9ACD32",
+  
   "softmintlight": "#d7e7df",
   "softmint": "#bfd6ce",
   "forestdark": "#184f3f",

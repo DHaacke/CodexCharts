@@ -83,13 +83,36 @@
         "yField": { "type": "string" },
         "groupField": { "type": "string" },
         "categoryField": { "type": "string" },
-        "valueField": { "type": "string" }
+        "valueField": { "type": "string" },
+        "labelTemplate": { "type": "string" }
       },
       "additionalProperties": true
     },
     "options": {
       "type": "object",
       "additionalProperties": true
+    },
+    "appearance": {
+      "type": "object",
+      "properties": {
+        "page_background": { "type": "string" },
+        "card_background": { "type": "string" },
+        "title_color": { "type": "string" },
+        "text_color": { "type": "string" },
+        "axis_color": { "type": "string" },
+        "grid_color": { "type": "string" },
+        "x_axis_label_color": { "type": "string" },
+        "x_axis_value_color": { "type": "string" },
+        "y_axis_label_color": { "type": "string" },
+        "y_axis_value_color": { "type": "string" },
+        "legend_text_color": { "type": "string" },
+        "series_colors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
     },
     "notes": {
       "type": "string"

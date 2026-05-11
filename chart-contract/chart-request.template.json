@@ -30,7 +30,8 @@
     "yField": "revenue",
     "groupField": "product_line",
     "categoryField": "month_label",
-    "valueField": "revenue"
+    "valueField": "revenue",
+    "labelTemplate": "{categoryField}"
   },
   "options": {
     "tension": 0.25,
@@ -54,6 +55,15 @@
         "beginAtZero": true
       }
     }
+  },
+  "appearance": {
+    "page_background": "linear-gradient(145deg, #d7e7df, #bfd6ce)",
+    "card_background": "rgba(243,250,246,0.82)",
+    "title_color": "#184f3f",
+    "text_color": "#2f6f5d",
+    "axis_color": "#184f3f",
+    "grid_color": "rgba(24,79,63,0.2)",
+    "series_colors": ["#4e79a7", "#f28e2b", "#59a14f", "#e15759"]
   },
   "notes": "Codex fetches rows using data_source and then applies mapping/options."
 }

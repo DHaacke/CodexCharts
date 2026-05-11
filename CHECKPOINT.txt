@@ -1,36 +1,236 @@
-Checkpoint Date: 2026-05-10
-Project: CodexCharts
+================================================================================
+CODEXCHARTS PROJECT CHECKPOINT
+Checkpoint Date: May 10, 2026 (End of Session)
+================================================================================
 
-Status:
-- Stored procedure endpoint supports both GET and POST.
-- GET query params support flattened proc_params.<key> format.
-- API response now returns both rows and data arrays.
-- Response rows normalize adundance -> abundance alias for chart mapping compatibility.
-- CORS headers enabled for browser fetch from local files.
-- One-command chart scripts added for line, bar, pie, scatter.
+PROJECT STATUS: ✅ PRODUCTION-READY
+All four chart types (line, bar, pie, scatter) fully functional with professional
+styling, JSON-driven customization, and comprehensive color controls.
 
-Key scripts:
-- npm run run:line:all
-- npm run run:bar:all
-- npm run run:pie:all
-- npm run run:scatter:all
-- npm run kill:port
+================================================================================
+THIS SESSION'S ACCOMPLISHMENTS
+================================================================================
 
-Last verified:
-- run:line:all completed successfully and generated chart-contract/output/line-chart.html.
-- run:bar:all completed successfully and generated chart-contract/output/bar-chart.html.
-- run:pie:all completed successfully and generated chart-contract/output/pie-chart.html.
-- run:scatter:all completed successfully and generated chart-contract/output/scatter-chart.html.
-- Port 3000 cleanup verified with npm run kill:port.
+1. FINE-GRAINED COLOR CONTROLS (PRIMARY FOCUS)
+   ✅ Added 5 new color fields to appearance object:
+      - x_axis_label_color (default: #184f3f)
+      - x_axis_value_color (default: #2f6f5d)
+      - y_axis_label_color (default: #184f3f)
+      - y_axis_value_color (default: #2f6f5d)
+      - legend_text_color (default: #184f3f)
+   
+   ✅ Updated schema (chart-request.schema.json)
+   ✅ Extended TypeScript interface (src/send-chart-request.ts)
+   ✅ Updated Codex system prompt with color application instructions
+   ✅ Added CSS custom property defaults in theme injection
+   ✅ Updated all four example JSON files
+   ✅ Updated README.md documentation
 
-Resume tomorrow:
-1) Open project folder.
-2) Run one of:
-   - npm run run:line:all
-   - npm run run:bar:all
-   - npm run run:pie:all
-   - npm run run:scatter:all
-3) Open the corresponding output HTML in chart-contract/output.
+2. COLOR PALETTE LIBRARY
+   ✅ Created /scripts/colors.js with CodexCharts brand palette:
+      - softmintlight: #d7e7df
+      - softmint: #bfd6ce
+      - forestdark: #184f3f
+      - forestsoft: #2f6f5d
+      - cardlight: #f3faf6
+      - chartblue: #2b8cbe
+      - chartorange: #f28e2b
+      - chartgreen: #59a14f
+      - chartmauve: #af7aa1
 
-Note:
-- This folder is currently not a git repository, so no git commit checkpoint was possible.
+3. REGENERATED ALL OUTPUTS
+   ✅ line-chart.html (with new color variables)
+   ✅ bar-chart.html (with new color variables)
+   ✅ pie-chart.html (with new color variables)
+   ✅ scatter-chart.html (with new color variables)
+
+================================================================================
+COMPLETE SYSTEM OVERVIEW
+================================================================================
+
+STACK:
+  Backend: Express.js + TypeScript
+  Database: MySQL (stored procedures, 'ri' schema)
+  Frontend: Chart.js (client rendering)
+  Validation: AJV (JSON Schema)
+  API: OpenAI Codex endpoint
+
+KEY FILES:
+  src/send-chart-request.ts     Main validator, builds Codex payload
+  src/server.ts                 Express API for stored procedures
+  chart-contract/chart-request.schema.json    JSON Schema contract
+  chart-contract/examples/*.json               Four working examples
+  scripts/colors.js                            NEW: Color name mappings
+
+================================================================================
+FOUR CHART TYPES (All Working)
+================================================================================
+
+1. LINE CHART
+   Proc: FWPSpeciesCountByYear (from_year, to_year)
+   Mapping: xField=year, yField=abundance, groupField=species
+   Output: chart-contract/output/line-chart.html
+
+2. BAR CHART (Stacked)
+   Proc: FWPSpeciesCountByYear (same data source)
+   Mapping: categoryField=year, valueField=abundance, groupField=species
+   Output: chart-contract/output/bar-chart.html
+
+3. PIE CHART
+   Proc: FWPSpeciesCountByYear (same data source)
+   Mapping: categoryField=species, valueField=abundance
+   Special: labelTemplate="{species} {year}"
+   Output: chart-contract/output/pie-chart.html
+
+4. SCATTER CHART
+   Proc: FWPSectionSpeciesLengthWeightScatterByYear
+   Mapping: xField=length, yField=weight
+   Output: chart-contract/output/scatter-chart.html
+
+================================================================================
+APPEARANCE CUSTOMIZATION (JSON-DRIVEN)
+================================================================================
+
+COMPLETE APPEARANCE OBJECT:
+  page_background           CSS background value (gradient or color)
+  card_background           Card fill color
+  title_color               Chart title color
+  text_color                Supporting text color
+  axis_color                Legacy axis hint
+  grid_color                Grid/border color
+  x_axis_label_color        X-axis title color
+  x_axis_value_color        X-axis tick label color
+  y_axis_label_color        Y-axis title color
+  y_axis_value_color        Y-axis tick label color
+  legend_text_color         Legend label color
+  series_colors             Array of dataset colors
+
+DEFAULTS (when fields omitted):
+  Page BG: linear-gradient(145deg, #d7e7df, #bfd6ce)
+  Card BG: rgba(243,250,246,0.82)
+  All Labels: #184f3f (forestdark)
+  Values/Text: #2f6f5d (forestsoft)
+  Grid: rgba(24,79,63,0.2)
+  Series: [#2b8cbe, #f28e2b, #59a14f, #af7aa1]
+
+SIZING:
+  output.width:   Total card width
+  output.height:  Total card height (plot = height - 156px)
+
+LABELS:
+  mapping.labelTemplate:  Compound labels for pie/tooltips
+  Example: "{species} {year}"
+
+================================================================================
+QUICK START
+================================================================================
+
+1. Ensure MySQL is running with FWP stored procedures
+2. Set OPENAI_API_KEY in .env or environment
+3. Run one of:
+   npm run run:line:all    → chart-contract/output/line-chart.html
+   npm run run:bar:all     → chart-contract/output/bar-chart.html
+   npm run run:pie:all     → chart-contract/output/pie-chart.html
+   npm run run:scatter:all → chart-contract/output/scatter-chart.html
+4. Open the corresponding HTML file in a browser
+
+All scripts handle server startup, health check, request generation, and cleanup.
+
+================================================================================
+GITHUB REPOSITORY STATUS
+================================================================================
+
+✅ Repository created: DHaacke/CodexCharts (public)
+✅ Initial commit with all source code
+✅ .gitignore configured (prompt.txt excluded for API key safety)
+✅ Remote origin set to https://github.com/DHaacke/CodexCharts.git
+
+================================================================================
+TOMORROW'S PLANNED WORK
+================================================================================
+
+PHASE: Color Name Resolution
+GOAL: Allow JSON appearance fields to use color names instead of hex values
+
+IMPLEMENTATION PLAN:
+  1. Extend appearance object to accept color names
+  2. Add color resolution logic to renderer (colors.js lookup)
+  3. Update examples to use names: "forestdark", "chartblue", etc.
+  4. Maintain hex fallback for direct color specs
+  5. Update documentation
+
+EXAMPLE (Tomorrow's Target):
+  "appearance": {
+    "page_background": "linear-gradient(145deg, softmintlight, softmint)",
+    "card_background": "cardlight",
+    "title_color": "forestdark",
+    "text_color": "forestsoft",
+    "x_axis_label_color": "forestdark",
+    "x_axis_value_color": "forestsoft",
+    "legend_text_color": "forestdark",
+    "series_colors": ["chartblue", "chartorange", "chartgreen", "chartmauve"]
+  }
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+SINGLE DATA SOURCE DESIGN:
+  Each chart request uses one stored procedure.
+  If combining data, do it server-side before charting.
+
+HEIGHT MATH:
+  output.height is total card height
+  Plot height = output.height - 156px (transport + padding overhead)
+  Prevents overflow of pie/scatter in sized containers
+
+COLLATION HANDLING:
+  Scatter proc uses CONVERT(param USING utf8mb4) for string comparisons
+  Necessary due to mixed utf8mb4 collations in database
+
+ENDPOINT FLEXIBILITY:
+  Default: /api/stored-proc
+  Override via data_source.endpoint
+  Supports GET (query params) and POST (JSON body)
+
+================================================================================
+VALIDATION & ERROR HANDLING
+================================================================================
+
+✅ Schema validation via AJV
+✅ Runtime field guard in generated HTML (checks all required fields present)
+✅ Transport summary visible in all outputs
+✅ Error messages for fetch failures and missing fields
+✅ Circular color cycling for series_colors
+
+================================================================================
+SESSION HISTORY (CUMULATIVE)
+================================================================================
+
+Session 1: Checkpoint resumption, data source alignment, bar/pie/scatter sync
+Session 2: SQL collation fix, GitHub repo setup, parameter placeholders
+Session 3: Professional styling (gradients, fonts, theme injection)
+Session 4: Chart sizing support (width/height in JSON)
+Session 5: Line chart layout fixes, pie legend templates
+Session 6: Pie chart overflow fix (height math)
+Session 7: Fine-grained color controls (THIS SESSION)
+           - 5 new color fields added
+           - Color palette library created
+           - All outputs regenerated
+
+PROJECT MATURITY: Production-ready with professional customization system
+
+================================================================================
+RESUME INSTRUCTIONS (NEXT SESSION)
+================================================================================
+
+1. Open /Users/doug/Development/Node/CodexCharts
+2. Verify MySQL is running with 'ri' schema procedures
+3. Verify OPENAI_API_KEY environment variable is set
+4. To generate a single chart:
+   npm run run:line:all (or bar:all, pie:all, scatter:all)
+5. To regenerate all four:
+   npm run build && npm run run:line:all && npm run run:bar:all && \
+   npm run run:pie:all && npm run run:scatter:all && npm run kill:port
+
+================================================================================

@@ -14,6 +14,8 @@ This folder gives you a manual-first JSON contract you can edit and send to Code
 2. Set `chart.type` and update `mapping` fields to match your result columns.
 3. Set stored procedure details in `data_source`.
 4. Set `output.format` to `html` now, with optional future `svg` or `pdf`.
+5. Optionally set `appearance` to control page background, card colors, and chart series palette.
+6. Optionally set `output.width` and `output.height` to control the rendered chart card size. If omitted, the page uses the available viewport width and height.
 
 ### Endpoint/method override for your backend
 
@@ -33,6 +35,68 @@ Behavior expected by generator:
 - Separates `data_source` (where data comes from) from `mapping` (how data is charted).
 - Keeps chart library options in `options` as native JSON (not escaped JSON string).
 - Uses stored procedure execution as the single source of chart data.
+- Keeps visual styling in JSON via optional `appearance` for repeatable branding.
+
+## Label templates
+
+You can optionally set `mapping.labelTemplate` when you want display labels to include more than one field. This is especially useful for pie chart legends and tooltips.
+
+Example:
+
+```json
+"mapping": {
+  "categoryField": "species",
+  "valueField": "abundance",
+  "labelTemplate": "{species} {year}"
+}
+```
+
+Behavior:
+
+- Placeholders use row field names from the stored procedure result.
+- If a placeholder is not present on the row, renderer falls back to matching `proc_params` when possible.
+- If `labelTemplate` is omitted, renderer uses the normal category field label.
+
+## Appearance options
+
+Add an optional `appearance` object at the top level of your request to control all styling:
+
+- `page_background`: CSS background value for the page/card scene.
+- `card_background`: card fill color behind chart area.
+- `title_color`: chart title and heading color.
+- `text_color`: supporting text color.
+- `axis_color`: preferred axis/tick color hint for renderer.
+- `grid_color`: preferred grid/border color hint for renderer.
+- `x_axis_label_color`: color for the x-axis label/title (defaults to dark forest #184f3f).
+- `x_axis_value_color`: color for x-axis tick values (defaults to soft ink #2f6f5d).
+- `y_axis_label_color`: color for the y-axis label/title (defaults to dark forest #184f3f).
+- `y_axis_value_color`: color for y-axis tick values (defaults to soft ink #2f6f5d).
+- `legend_text_color`: color for legend labels and text (defaults to dark forest #184f3f).
+- `series_colors`: array of dataset colors (applied in order, cycled as needed).
+
+Example:
+
+```json
+"appearance": {
+  "page_background": "linear-gradient(145deg, #d7e7df, #bfd6ce)",
+  "card_background": "rgba(243,250,246,0.82)",
+  "title_color": "#184f3f",
+  "text_color": "#2f6f5d",
+  "axis_color": "#184f3f",
+  "grid_color": "rgba(24,79,63,0.2)",
+  "x_axis_label_color": "#184f3f",
+  "x_axis_value_color": "#2f6f5d",
+  "y_axis_label_color": "#184f3f",
+  "y_axis_value_color": "#2f6f5d",
+  "legend_text_color": "#184f3f",
+  "series_colors": ["#4e79a7", "#f28e2b", "#59a14f", "#e15759"]
+}
+```
+
+**Sensible defaults:**
+If any appearance fields are omitted during processing, the system uses safe defaults: dark forest tones for labels, soft ink for values, matching the existing color palette. The gradient backgrounds and card styling remain consistent with the professional theme.
+
+
 
 ## Alternative design options
 

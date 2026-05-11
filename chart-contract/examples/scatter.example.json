@@ -2,11 +2,13 @@
   "request_version": "1.0",
   "output": {
     "format": "html",
-    "container_id": "chart-root"
+    "container_id": "chart-root",
+    "width": 1280,
+    "height": 760
   },
   "chart": {
     "type": "scatter",
-    "title": "Length vs Weight Scatter",
+    "title": "{species} {year} Length vs Weight {section}",
     "show_legend": true,
     "x_axis_label": "Length (mm)",
     "y_axis_label": "Weight (g)"
@@ -29,5 +31,16 @@
   },
   "options": {
     "pointRadius": 3
+  },
+  "appearance": {
+    "page_background": "linear-gradient(145deg, #d7e7df, #bfd6ce)",
+    "card_background": "rgba(243,250,246,0.82)",
+    "title_color": "#184f3f",
+    "text_color": "#2f6f5d",
+    "grid_color": "rgba(24,79,63,0.2)",    "x_axis_label_color": "#184f3f",
+    "x_axis_value_color": "#2f6f5d",
+    "y_axis_label_color": "#184f3f",
+    "y_axis_value_color": "#2f6f5d",
+    "legend_text_color": "#184f3f",    "series_colors": ["#4e79a7", "#f28e2b", "#59a14f"]
   }
 }

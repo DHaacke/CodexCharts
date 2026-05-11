@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FWP Survey Species by Year</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: Arial, sans-serif; margin: 12px; }
+    .transport {
+      font-size: 12px;
+      padding: 6px 8px;
+      border: 1px solid #999;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      background: rgba(127,127,127,0.08);
+      word-break: break-all;
+    }
+    #error {
+      color: #b00020;
+      font-weight: 600;
+      margin: 8px 0 12px;
+      white-space: pre-wrap;
+    }
+    #chart-wrap { width: 100%; max-width: 1100px; height: 520px; }
+    #chart-root { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="transport" class="transport"></div>
+  <div id="error" role="alert"></div>
+  <div id="chart-wrap">
+    <canvas id="chart-root"></canvas>
+  </div>
+
+  <script>
+    (async function () {
+      const request = {"request_version":"1.0","output":{"format":"html","container_id":"chart-root"},"chart":{"type":"line","title":"FWP Survey Species by Year","show_legend":true,"x_axis_label":"Year","y_axis_label":"Abundance","stacked":false},"data_source":{"proc_schema":"ri","proc_name":"FWPSpeciesCountByYear","endpoint":"http://localhost:3000/api/stored-proc","http_method":"GET","proc_params":{"from_year":"2024","to_year":"2026"},"result_set_index":0},"mapping":{"xField":"year","yField":"abundance","groupField":"species"},"options":{"tension":0.2,"pointRadius":2}};
+
+      const ds = request.data_source || {};
+      const endpoint = ds.endpoint || '/api/stored-proc';
+      const method = (ds.http_method || 'POST').toUpperCase();
+      const proc_schema = ds.proc_schema;
+      const proc_name = ds.proc_name;
+      const proc_params = ds.proc_params || {};
+      const result_set_index = ds.result_set_index ?? 0;
+
+      const transportEl = document.getElementById('transport');
+      const errorEl = document.getElementById('error');
+      transportEl.textContent = `Endpoint: http://localhost:3000/api/stored-proc | Method: GET | Proc: FWPSpeciesCountByYear | Request URL: /api/stored-proc?proc_schema=ri&proc_name=FWPSpeciesCountByYear&result_set_index=0&proc_params.from_year=2024&proc_params.to_year=2026`;
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+      }
+
+      function makeColors(n) {
+        const colors = [];
+        for (let i = 0; i < n; i++) {
+          const hue = Math.round((360 * i) / Math.max(1, n));
+          colors.push(`hsl(${hue}, 70%, 45%)`);
+        }
+        return colors;
+      }
+
+      let url = endpoint;
+      const fetchOptions = { method, headers: {} };
+
+      if (method === 'GET') {
+        const qs = new URLSearchParams();
+        qs.set('proc_schema', proc_schema ?? '');
+        qs.set('proc_name', proc_name ?? '');
+        qs.set('result_set_index', String(result_set_index));
+        qs.set('proc_params', JSON.stringify(proc_params));
+        url += (url.includes('?') ? '&' : '?') + qs.toString();
+      } else {
+        fetchOptions.headers['Content-Type'] = 'application/json';
+        fetchOptions.body = JSON.stringify({
+          proc_schema,
+          proc_name,
+          proc_params,
+          result_set_index
+        });
+      }
+
+      let resp;
+      try {
+        resp = await fetch(url, fetchOptions);
+      } catch (e) {
+        showError(`Fetch failed (${method} ${endpoint}): ${e.message}`);
+        return;
+      }
+
+      if (!resp.ok) {
+        showError(`Fetch failed with status ${resp.status} (${method} ${endpoint})`);
+        return;
+      }
+
+      let payload;
+      try {
+        payload = await resp.json();
+      } catch (e) {
+        showError(`Failed to parse JSON response: ${e.message}`);
+        return;
+      }
+
+      let rows = [];
+      if (Array.isArray(payload)) {
+        rows = payload;
+      } else if (payload && Array.isArray(payload.rows)) {
+        rows = payload.rows;
+      } else if (payload && Array.isArray(payload.data)) {
+        rows = payload.data;
+      } else if (payload && Array.isArray(payload.result)) {
+        rows = payload.result;
+      }
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        showError('No data rows returned from stored procedure.');
+        return;
+      }
+
+      const mapping = request.mapping || {};
+      const requiredFields = [mapping.xField, mapping.yField, mapping.groupField].filter(Boolean);
+
+      const rowWithAllFields = rows.find(r =>
+        requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f))
+      );
+
+      if (!rowWithAllFields) {
+        const missing = requiredFields.filter(f => !rows.some(r => Object.prototype.hasOwnProperty.call(r, f)));
+        showError(`Missing required mapped field(s): ${missing.join(', ')}`);
+        return;
+      }
+
+      const xField = mapping.xField;
+      const yField = mapping.yField;
+      const groupField = mapping.groupField;
+
+      const labels = Array.from(new Set(rows.map(r => r[xField]))).sort((a, b) => {
+        const na = Number(a), nb = Number(b);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        return String(a).localeCompare(String(b));
+      });
+
+      const groups = Array.from(new Set(rows.map(r => r[groupField])));
+      const colors = makeColors(groups.length);
+
+      const datasets = groups.map((g, idx) => {
+        const byX = new Map(rows.filter(r => r[groupField] === g).map(r => [r[xField], r[yField]]));
+        const data = labels.map(x => {
+          const v = byX.get(x);
+          return v == null ? null : Number(v);
+        });
+        return {
+          label: String(g),
+          data,
+          borderColor: colors[idx],
+          backgroundColor: colors[idx],
+          tension: request.options?.tension ?? 0.2,
+          pointRadius: request.options?.pointRadius ?? 2,
+          spanGaps: true
+        };
+      });
+
+      const ctx = document.getElementById(request.output?.container_id || 'chart-root').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: !!request.chart?.title,
+              text: request.chart?.title || ''
+            },
+            legend: {
+              display: !!request.chart?.show_legend
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: !!request.chart?.x_axis_label,
+                text: request.chart?.x_axis_label || ''
+              },
+              stacked: !!request.chart?.stacked
+            },
+            y: {
+              title: {
+                display: !!request.chart?.y_axis_label,
+                text: request.chart?.y_axis_label || ''
+              },
+              stacked: !!request.chart?.stacked
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

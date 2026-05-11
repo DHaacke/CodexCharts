@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FWP Survey Species by Year</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 12px; color: #222; }
+    .transport {
+      font-size: 12px;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fafafa;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    .error {
+      color: #b00020;
+      background: #ffe9ec;
+      border: 1px solid #f5b7bf;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+    #chart-wrap { width: 100%; max-width: 1100px; height: 520px; }
+    #chart-root { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div class="transport" id="transport-summary"></div>
+  <div id="chart-wrap">
+    <canvas id="chart-root"></canvas>
+  </div>
+  <div id="message"></div>
+
+  <script>
+    (async function () {
+      const config = {
+        chart: {
+          type: "bar",
+          title: "FWP Survey Species by Year",
+          show_legend: true,
+          x_axis_label: "Year",
+          y_axis_label: "Abundance",
+          stacked: true
+        },
+        data_source: {
+          proc_schema: "ri",
+          proc_name: "FWPSpeciesCountByYear",
+          endpoint: "http://localhost:3000/api/stored-proc",
+          http_method: 'GET',
+          proc_params: { from_year: "2024", to_year: "2026" },
+          result_set_index: 0
+        },
+        mapping: {
+          categoryField: "year",
+          valueField: "abundance",
+          groupField: "species"
+        },
+        options: {
+          stacked: true,
+          indexAxis: "x"
+        }
+      };
+
+      const endpoint = config.data_source.endpoint || "/api/stored-proc";
+      const method = (config.data_source.http_method || "POST").toUpperCase();
+      const transportSummary = document.getElementById("transport-summary");
+      const messageEl = document.getElementById("message");
+      const canvas = document.getElementById("chart-root");
+
+      transportSummary.textContent = `Endpoint: ${endpoint} | Method: ${method} | Proc: ${config.data_source.proc_name}`;
+
+      const payload = {
+        proc_schema: config.data_source.proc_schema,
+        proc_name: config.data_source.proc_name,
+        proc_params: config.data_source.proc_params || {},
+        result_set_index: config.data_source.result_set_index ?? 0
+      };
+
+      let url = endpoint;
+      const fetchOptions = { method, headers: {} };
+
+      if (method === "GET") {
+        const params = new URLSearchParams();
+        params.set("proc_schema", payload.proc_schema ?? "");
+        params.set("proc_name", payload.proc_name ?? "");
+        params.set("result_set_index", String(payload.result_set_index ?? 0));
+        params.set("proc_params", JSON.stringify(payload.proc_params || {}));
+        url += (url.includes("?") ? "&" : "?") + params.toString();
+      } else {
+        fetchOptions.headers["Content-Type"] = "application/json";
+        fetchOptions.body = JSON.stringify(payload);
+      }
+
+      let resp;
+      try {
+        resp = await fetch(url, fetchOptions);
+      } catch (err) {
+        messageEl.innerHTML = `<div class="error">Request failed (${method} ${endpoint}): ${err.message}</div>`;
+        canvas.style.display = "none";
+        return;
+      }
+
+      if (!resp.ok) {
+        messageEl.innerHTML = `<div class="error">Fetch failed: status ${resp.status} (${method} ${endpoint})</div>`;
+        canvas.style.display = "none";
+        return;
+      }
+
+      let data;
+      try {
+        data = await resp.json();
+      } catch (err) {
+        messageEl.innerHTML = `<div class="error">Failed to parse JSON response: ${err.message}</div>`;
+        canvas.style.display = "none";
+        return;
+      }
+
+      const rows = Array.isArray(data) ? data
+        : Array.isArray(data?.rows) ? data.rows
+        : Array.isArray(data?.data) ? data.data
+        : Array.isArray(data?.result) ? data.result
+        : [];
+
+      if (!rows.length) {
+        messageEl.innerHTML = `<div class="error">No rows returned from stored procedure.</div>`;
+        canvas.style.display = "none";
+        return;
+      }
+
+      const requiredFields = [config.mapping.categoryField, config.mapping.valueField, config.mapping.groupField].filter(Boolean);
+      const hasValidRow = rows.some(r => requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f)));
+      if (!hasValidRow) {
+        const missing = requiredFields.filter(f => !rows.some(r => Object.prototype.hasOwnProperty.call(r, f)));
+        messageEl.innerHTML = `<div class="error">Missing required mapped field(s): ${missing.join(", ")}</div>`;
+        canvas.style.display = "none";
+        return;
+      }
+
+      const filtered = rows.filter(r => requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f)));
+
+      const categories = [...new Set(filtered.map(r => String(r[config.mapping.categoryField])))];
+      const groups = [...new Set(filtered.map(r => String(r[config.mapping.groupField])))];
+
+      const colors = [
+        "#3366CC","#DC3912","#FF9900","#109618","#990099","#0099C6",
+        "#DD4477","#66AA00","#B82E2E","#316395","#994499","#22AA99"
+      ];
+
+      const datasets = groups.map((g, i) => {
+        const values = categories.map(cat => {
+          const matches = filtered.filter(r =>
+            String(r[config.mapping.categoryField]) === cat &&
+            String(r[config.mapping.groupField]) === g
+          );
+          return matches.reduce((sum, r) => sum + (Number(r[config.mapping.valueField]) || 0), 0);
+        });
+        return {
+          label: g,
+          data: values,
+          backgroundColor: colors[i % colors.length]
+        };
+      });
+
+      new Chart(canvas.getContext("2d"), {
+        type: config.chart.type,
+        data: {
+          labels: categories,
+          datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: config.options?.indexAxis || "x",
+          plugins: {
+            legend: { display: !!config.chart.show_legend },
+            title: { display: !!config.chart.title, text: config.chart.title }
+          },
+          scales: {
+            x: {
+              stacked: !!config.chart.stacked || !!config.options?.stacked,
+              title: { display: !!config.chart.x_axis_label, text: config.chart.x_axis_label }
+            },
+            y: {
+              stacked: !!config.chart.stacked || !!config.options?.stacked,
+              title: { display: !!config.chart.y_axis_label, text: config.chart.y_axis_label }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Length vs Weight Scatter</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 12px; color: #111; }
+    #transport-summary {
+      font-size: 12px;
+      background: #f4f6f8;
+      border: 1px solid #d9dee3;
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    #error {
+      color: #b00020;
+      background: #fdecef;
+      border: 1px solid #f5c2c7;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      display: none;
+      white-space: pre-wrap;
+    }
+    #chart-wrap { width: 100%; max-width: 980px; height: 560px; }
+  </style>
+</head>
+<body>
+  <div id="transport-summary"></div>
+  <div id="error"></div>
+  <div id="chart-wrap">
+    <canvas id="chart-root"></canvas>
+  </div>
+
+  <script>
+    (async function () {
+      const cfg = {
+        request_version: "1.0",
+        output: { format: "html", container_id: "chart-root" },
+        chart: {
+          type: "scatter",
+          title: "Length vs Weight Scatter",
+          show_legend: true,
+          x_axis_label: "Length (mm)",
+          y_axis_label: "Weight (g)"
+        },
+        data_source: {
+          proc_schema: "ri",
+          proc_name: "FWPSectionSpeciesLengthWeightScatterByYear",
+          endpoint: "http://localhost:3000/api/stored-proc",
+          http_method: 'GET',
+          proc_params: { year: 2026, section: "Bighorn Section (Upper)", species: "RB" },
+          result_set_index: 0
+        },
+        mapping: { xField: "length", yField: "weight" },
+        options: { pointRadius: 3 }
+      };
+
+      const endpoint = cfg.data_source.endpoint || "/api/stored-proc";
+      const method = (cfg.data_source.http_method || "POST").toUpperCase();
+      const transportEl = document.getElementById('transport-summary');
+      const errorEl = document.getElementById("error");
+
+      transportEl.textContent = `Endpoint: http://localhost:3000/api/stored-proc | Method: GET | Proc: FWPSectionSpeciesLengthWeightScatterByYear | Request URL: /api/stored-proc?proc_schema=ri&proc_name=FWPSectionSpeciesLengthWeightScatterByYear&result_set_index=0&proc_params.year=2026&proc_params.section=Bighorn+Section+%28Upper%29&proc_params.species=RB`;
+
+      function showError(msg) {
+        errorEl.style.display = "block";
+        errorEl.textContent = msg;
+      }
+
+      try {
+        const payload = {
+          proc_schema: cfg.data_source.proc_schema,
+          proc_name: cfg.data_source.proc_name,
+          proc_params: cfg.data_source.proc_params,
+          result_set_index: cfg.data_source.result_set_index
+        };
+
+        let response;
+        if (method === "GET") {
+          const params = new URLSearchParams();
+          params.set("proc_schema", payload.proc_schema ?? "");
+          params.set("proc_name", payload.proc_name ?? "");
+          params.set("result_set_index", String(payload.result_set_index ?? 0));
+          params.set("proc_params", JSON.stringify(payload.proc_params ?? {}));
+          const url = endpoint + (endpoint.includes("?") ? "&" : "?") + params.toString();
+          response = await fetch(url, { method: 'GET' });
+        } else {
+          response = await fetch(endpoint, {
+            method: 'GET',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (!response.ok) {
+          showError(`Fetch failed: ${response.status} (${response.statusText}) for ${method} ${endpoint}`);
+          return;
+        }
+
+        const json = await response.json();
+        const rows = Array.isArray(json) ? json
+                  : Array.isArray(json?.data) ? json.data
+                  : Array.isArray(json?.rows) ? json.rows
+                  : Array.isArray(json?.result) ? json.result
+                  : [];
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          showError("No data returned from stored procedure.");
+          return;
+        }
+
+        const requiredFields = [cfg.mapping.xField, cfg.mapping.yField];
+        const hasValidRow = rows.some(r => requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f)));
+        if (!hasValidRow) {
+          showError("Missing required mapped field(s): " + requiredFields.join(", "));
+          return;
+        }
+
+        const points = rows
+          .filter(r => requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f)))
+          .map(r => ({ x: Number(r[cfg.mapping.xField]), y: Number(r[cfg.mapping.yField]) }))
+          .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+        if (!points.length) {
+          showError("No plottable numeric points after applying mappings.");
+          return;
+        }
+
+        const ctx = document.getElementById(cfg.output.container_id).getContext("2d");
+        new Chart(ctx, {
+          type: "scatter",
+          data: {
+            datasets: [{
+              label: cfg.chart.title,
+              data: points,
+              pointRadius: cfg.options?.pointRadius ?? 3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: !!cfg.chart.show_legend },
+              title: { display: true, text: cfg.chart.title }
+            },
+            scales: {
+              x: { title: { display: true, text: cfg.chart.x_axis_label } },
+              y: { title: { display: true, text: cfg.chart.y_axis_label } }
+            }
+          }
+        });
+      } catch (err) {
+        showError(`Fetch failed: unknown status for ${method} ${endpoint}\n${err && err.message ? err.message : String(err)}`);
+      }
+    })();
+  </script>
+</body>
+</html>

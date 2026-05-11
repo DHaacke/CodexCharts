@@ -1,0 +1,34 @@
+{
+  "name": "codexcharts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Validate chart contract JSON and send to Codex API",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && node dist/server.js",
+    "start": "node dist/server.js",
+    "dev:server": "node dist/server.js",
+    "kill:port": "node scripts/kill-port.js",
+    "kill:server": "node scripts/kill-port.js",
+    "run:chart": "node dist/send-chart-request.js",
+    "run:line": "node dist/send-chart-request.js --request chart-contract/examples/line.stored-proc.example.json --out chart-contract/output/line-chart.html",
+    "run:line:all": "node scripts/run-line-all.js --script run:line --output chart-contract/output/line-chart.html --label line",
+    "run:bar": "node dist/send-chart-request.js --request chart-contract/examples/bar.grouped.example.json --out chart-contract/output/bar-chart.html",
+    "run:bar:all": "node scripts/run-line-all.js --script run:bar --output chart-contract/output/bar-chart.html --label bar",
+    "run:pie": "node dist/send-chart-request.js --request chart-contract/examples/pie.example.json --out chart-contract/output/pie-chart.html",
+    "run:pie:all": "node scripts/run-line-all.js --script run:pie --output chart-contract/output/pie-chart.html --label pie",
+    "run:scatter": "node dist/send-chart-request.js --request chart-contract/examples/scatter.example.json --out chart-contract/output/scatter-chart.html",
+    "run:scatter:all": "node scripts/run-line-all.js --script run:scatter --output chart-contract/output/scatter-chart.html --label scatter"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.18",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "request_version": "1.0",
+  "output": {
+    "format": "html",
+    "container_id": "chart-root",
+    "width": 1000,
+    "height": 560,
+    "theme": "light"
+  },
+  "chart": {
+    "type": "line",
+    "title": "Revenue by Month",
+    "subtitle": "FY2026",
+    "show_legend": true,
+    "x_axis_label": "Month",
+    "y_axis_label": "Revenue (USD)",
+    "stacked": false
+  },
+  "data_source": {
+    "proc_schema": "ri",
+    "proc_name": "sp_revenue_by_month",
+    "proc_params": {
+      "year": 2026,
+      "region": "all"
+    },
+    "result_set_index": 0
+  },
+  "mapping": {
+    "xField": "month_label",
+    "yField": "revenue",
+    "groupField": "product_line",
+    "categoryField": "month_label",
+    "valueField": "revenue"
+  },
+  "options": {
+    "tension": 0.25,
+    "pointRadius": 3,
+    "fill": false,
+    "responsive": true,
+    "plugins": {
+      "tooltip": {
+        "enabled": true
+      },
+      "legend": {
+        "position": "top"
+      }
+    },
+    "scales": {
+      "x": {
+        "stacked": false
+      },
+      "y": {
+        "stacked": false,
+        "beginAtZero": true
+      }
+    }
+  },
+  "notes": "Codex fetches rows using data_source and then applies mapping/options."
+}

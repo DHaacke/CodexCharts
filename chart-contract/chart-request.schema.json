@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/chart-request.schema.json",
+  "title": "Codex Chart Request",
+  "type": "object",
+  "required": [
+    "request_version",
+    "output",
+    "chart",
+    "data_source",
+    "mapping"
+  ],
+  "properties": {
+    "request_version": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "output": {
+      "type": "object",
+      "required": ["format", "container_id"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["html", "svg", "pdf"]
+        },
+        "container_id": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "chart": {
+      "type": "object",
+      "required": ["type", "title", "show_legend"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["line", "bar", "pie", "scatter"]
+        },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "show_legend": { "type": "boolean" },
+        "x_axis_label": { "type": "string" },
+        "y_axis_label": { "type": "string" },
+        "stacked": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "data_source": {
+      "type": "object",
+      "required": ["proc_schema", "proc_name", "result_set_index"],
+      "properties": {
+        "proc_schema": { "type": "string", "default": "ri" },
+        "proc_name": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "http_method": { "type": "string", "enum": ["GET", "POST"] },
+        "proc_params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean", "null"]
+          }
+        },
+        "result_set_index": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "mapping": {
+      "type": "object",
+      "properties": {
+        "xField": { "type": "string" },
+        "yField": { "type": "string" },
+        "groupField": { "type": "string" },
+        "categoryField": { "type": "string" },
+        "valueField": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

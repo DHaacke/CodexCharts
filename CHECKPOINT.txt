@@ -1,0 +1,36 @@
+Checkpoint Date: 2026-05-10
+Project: CodexCharts
+
+Status:
+- Stored procedure endpoint supports both GET and POST.
+- GET query params support flattened proc_params.<key> format.
+- API response now returns both rows and data arrays.
+- Response rows normalize adundance -> abundance alias for chart mapping compatibility.
+- CORS headers enabled for browser fetch from local files.
+- One-command chart scripts added for line, bar, pie, scatter.
+
+Key scripts:
+- npm run run:line:all
+- npm run run:bar:all
+- npm run run:pie:all
+- npm run run:scatter:all
+- npm run kill:port
+
+Last verified:
+- run:line:all completed successfully and generated chart-contract/output/line-chart.html.
+- run:bar:all completed successfully and generated chart-contract/output/bar-chart.html.
+- run:pie:all completed successfully and generated chart-contract/output/pie-chart.html.
+- run:scatter:all completed successfully and generated chart-contract/output/scatter-chart.html.
+- Port 3000 cleanup verified with npm run kill:port.
+
+Resume tomorrow:
+1) Open project folder.
+2) Run one of:
+   - npm run run:line:all
+   - npm run run:bar:all
+   - npm run run:pie:all
+   - npm run run:scatter:all
+3) Open the corresponding output HTML in chart-contract/output.
+
+Note:
+- This folder is currently not a git repository, so no git commit checkpoint was possible.

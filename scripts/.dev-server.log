@@ -1,0 +1,10 @@
+
+> codexcharts@1.0.0 dev:server
+> node dist/server.js
+
+Stored-proc API listening on http://localhost:3000
+
+> codexcharts@1.0.0 dev:server
+> node dist/server.js
+
+Stored-proc API listening on http://localhost:3000

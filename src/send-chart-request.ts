@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import Ajv2020 from "ajv/dist/2020";
 import dotenv from "dotenv";
+import * as XLSX from "xlsx";
 
 interface ChartRequest {
   request_version: string;
   output: {
-    format: "html";
+    format: "html" | "csv" | "xlsx";
     container_id: string;
     width?: number;
     height?: number;
@@ -52,6 +54,16 @@ interface ChartRequest {
     series_colors?: string[];
   };
   notes?: string;
+  export_options?: {
+    column_order?: string[];
+    include_remaining_columns?: boolean;
+    xlsx?: {
+      sheet_name?: string;
+      result_set_indices?: number[];
+      sheet_names?: Record<string, string>;
+      sheet_name_prefix?: string;
+    };
+  };
 }
 
 interface CodexResponse {
@@ -60,6 +72,8 @@ interface CodexResponse {
   output_html?: string;
   [key: string]: unknown;
 }
+
+type DataRow = Record<string, unknown>;
 
 type ColorLookup = Record<string, string>;
 
@@ -74,6 +88,10 @@ function getArgValue(flag: string): string | undefined {
     return undefined;
   }
   return process.argv[idx + 1];
+}
+
+function hasArgFlag(...flags: string[]): boolean {
+  return flags.some((flag) => process.argv.includes(flag));
 }
 
 function readJsonFile<T>(filePath: string): T {
@@ -658,11 +676,316 @@ function buildRequestUrl(request: ChartRequest): string {
   return `${url.pathname}${url.search}`;
 }
 
+function buildStoredProcUrlForNode(request: ChartRequest, resultSetIndex: number): string {
+  const method = (request.data_source.http_method || "POST").toUpperCase();
+  const endpoint = request.data_source.endpoint || "/api/stored-proc";
+  const baseUrl = process.env.STORED_PROC_BASE_URL ?? "http://localhost:3000";
+  const absoluteEndpoint = /^https?:\/\//i.test(endpoint) ? endpoint : new URL(endpoint, baseUrl).toString();
+
+  if (method !== "GET") {
+    return absoluteEndpoint;
+  }
+
+  const url = new URL(absoluteEndpoint);
+  url.searchParams.set("proc_schema", request.data_source.proc_schema);
+  url.searchParams.set("proc_name", request.data_source.proc_name);
+  url.searchParams.set("result_set_index", String(resultSetIndex));
+
+  const procParams = request.data_source.proc_params ?? {};
+  Object.entries(procParams).forEach(([k, v]) => {
+    url.searchParams.set(`proc_params.${k}`, v == null ? "" : String(v));
+  });
+
+  return url.toString();
+}
+
+function toDataRows(value: unknown): DataRow[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((row): row is DataRow => Boolean(row) && typeof row === "object" && !Array.isArray(row))
+    .map((row) => ({ ...row }));
+}
+
+function extractRowsFromStoredProcResponse(payload: unknown): DataRow[] {
+  if (Array.isArray(payload)) {
+    return toDataRows(payload);
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const candidate = payload as { rows?: unknown; data?: unknown };
+  const rows = toDataRows(candidate.rows);
+  if (rows.length > 0) {
+    return rows;
+  }
+
+  return toDataRows(candidate.data);
+}
+
+async function fetchStoredProcRows(request: ChartRequest, resultSetIndex: number): Promise<DataRow[]> {
+  const method = (request.data_source.http_method || "POST").toUpperCase();
+  const url = buildStoredProcUrlForNode(request, resultSetIndex);
+
+  const requestInit: RequestInit = {
+    method,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+
+  if (method === "POST") {
+    requestInit.body = JSON.stringify({
+      proc_schema: request.data_source.proc_schema,
+      proc_name: request.data_source.proc_name,
+      proc_params: request.data_source.proc_params ?? {},
+      result_set_index: resultSetIndex
+    });
+  }
+
+  const response = await fetch(url, requestInit);
+  if (!response.ok) {
+    const body = await response.text();
+    fail(`Stored-procedure request failed (${response.status}): ${body}`);
+  }
+
+  const json = (await response.json()) as unknown;
+  return extractRowsFromStoredProcResponse(json);
+}
+
+function getPreferredColumns(request: ChartRequest): string[] {
+  const explicit = request.export_options?.column_order ?? [];
+  if (explicit.length > 0) {
+    return Array.from(new Set(explicit.filter((c) => typeof c === "string" && c.trim().length > 0)));
+  }
+
+  const values = [
+    request.mapping.xField,
+    request.mapping.yField,
+    request.mapping.groupField,
+    request.mapping.categoryField,
+    request.mapping.valueField
+  ];
+
+  const unique = new Set<string>();
+  values.forEach((field) => {
+    if (field && field.trim().length > 0) {
+      unique.add(field);
+    }
+  });
+
+  return Array.from(unique);
+}
+
+function getColumnHeaders(rows: DataRow[], request: ChartRequest): string[] {
+  const configuredOrder = request.export_options?.column_order ?? [];
+  const includeRemaining = request.export_options?.include_remaining_columns ?? true;
+
+  const fromRows = new Set<string>();
+  rows.forEach((row) => {
+    Object.keys(row).forEach((key) => fromRows.add(key));
+  });
+
+  const configured = Array.from(new Set(configuredOrder.filter((c) => typeof c === "string" && c.trim().length > 0)));
+  const fromRowsOrdered = Array.from(fromRows);
+
+  if (configured.length > 0) {
+    if (!includeRemaining) {
+      return configured;
+    }
+
+    const remaining = fromRowsOrdered.filter((col) => !configured.includes(col));
+    return [...configured, ...remaining];
+  }
+
+  if (fromRowsOrdered.length > 0) {
+    return fromRowsOrdered;
+  }
+
+  return getPreferredColumns(request);
+}
+
+function csvEscape(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const text = typeof value === "string" ? value : String(value);
+  if (!/[",\n\r]/.test(text)) {
+    return text;
+  }
+
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function toCsv(rows: DataRow[], headers: string[]): string {
+  if (headers.length === 0) {
+    return "";
+  }
+
+  const lines = [headers.map((h) => csvEscape(h)).join(",")];
+  rows.forEach((row) => {
+    const line = headers.map((header) => csvEscape(row[header])).join(",");
+    lines.push(line);
+  });
+
+  return `${lines.join("\n")}\n`;
+}
+
+function writeXlsx(rows: DataRow[], headers: string[], outPath: string, sheetName = "Data"): void {
+  const workbook = XLSX.utils.book_new();
+  const resolvedSheetName = sanitizeSheetName(sheetName);
+
+  if (rows.length === 0) {
+    const emptySheet = XLSX.utils.aoa_to_sheet(headers.length > 0 ? [headers] : [["No data"]]);
+    XLSX.utils.book_append_sheet(workbook, emptySheet, resolvedSheetName);
+    XLSX.writeFile(workbook, outPath);
+    return;
+  }
+
+  const sheet = XLSX.utils.json_to_sheet(rows, { header: headers.length > 0 ? headers : undefined });
+  XLSX.utils.book_append_sheet(workbook, sheet, resolvedSheetName);
+  XLSX.writeFile(workbook, outPath);
+}
+
+function sanitizeSheetName(name: string): string {
+  const invalidChars = /[\\/?*\[\]:]/g;
+  const cleaned = name.replace(invalidChars, " ").trim();
+  if (cleaned.length === 0) {
+    return "Data";
+  }
+  return cleaned.slice(0, 31);
+}
+
+function createWorksheet(rows: DataRow[], headers: string[]): XLSX.WorkSheet {
+  if (rows.length === 0) {
+    return XLSX.utils.aoa_to_sheet(headers.length > 0 ? [headers] : [["No data"]]);
+  }
+
+  return XLSX.utils.json_to_sheet(rows, { header: headers.length > 0 ? headers : undefined });
+}
+
+function getResultSetIndicesForXlsx(request: ChartRequest): number[] {
+  const configured = request.export_options?.xlsx?.result_set_indices;
+  if (Array.isArray(configured) && configured.length > 0) {
+    const unique = Array.from(new Set(configured.filter((n) => Number.isInteger(n) && n >= 0)));
+    if (unique.length > 0) {
+      return unique;
+    }
+  }
+
+  return [request.data_source.result_set_index ?? 0];
+}
+
+function getSheetNameForIndex(request: ChartRequest, resultSetIndex: number, fallbackIndex: number): string {
+  const configuredNames = request.export_options?.xlsx?.sheet_names;
+  const configured = configuredNames?.[String(resultSetIndex)];
+  if (configured && configured.trim().length > 0) {
+    return sanitizeSheetName(configured);
+  }
+
+  const singleSheetName = request.export_options?.xlsx?.sheet_name;
+  const allIndices = getResultSetIndicesForXlsx(request);
+  if (singleSheetName && singleSheetName.trim().length > 0 && allIndices.length === 1) {
+    return sanitizeSheetName(singleSheetName);
+  }
+
+  const prefix = request.export_options?.xlsx?.sheet_name_prefix?.trim() || "Result";
+  const multiName = `${prefix}_${resultSetIndex}`;
+  const singleName = `Data${fallbackIndex > 0 ? `_${fallbackIndex + 1}` : ""}`;
+
+  return sanitizeSheetName(allIndices.length > 1 ? multiName : singleName);
+}
+
+function writeXlsxMultiSheet(
+  sheetEntries: Array<{ resultSetIndex: number; rows: DataRow[]; headers: string[] }>,
+  request: ChartRequest,
+  outPath: string
+): void {
+  const workbook = XLSX.utils.book_new();
+  const usedNames = new Set<string>();
+
+  sheetEntries.forEach((entry, idx) => {
+    let sheetName = getSheetNameForIndex(request, entry.resultSetIndex, idx);
+    if (usedNames.has(sheetName)) {
+      let suffix = 2;
+      while (usedNames.has(`${sheetName}_${suffix}`)) {
+        suffix += 1;
+      }
+      sheetName = sanitizeSheetName(`${sheetName}_${suffix}`);
+    }
+
+    usedNames.add(sheetName);
+    XLSX.utils.book_append_sheet(workbook, createWorksheet(entry.rows, entry.headers), sheetName);
+  });
+
+  XLSX.writeFile(workbook, outPath);
+}
+
+function getDefaultOutputPath(request: ChartRequest): string {
+  switch (request.output.format) {
+    case "csv":
+      return "chart-output.csv";
+    case "xlsx":
+      return "chart-output.xlsx";
+    case "html":
+    default:
+      return "chart-output.html";
+  }
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function getTimestampSuffix(date: Date): string {
+  const yy = String(date.getFullYear()).slice(-2);
+  const mm = pad2(date.getMonth() + 1);
+  const dd = pad2(date.getDate());
+  const hh = pad2(date.getHours());
+  const min = pad2(date.getMinutes());
+  return `${yy}-${mm}-${dd}-${hh}${min}`;
+}
+
+function addTimestampToOutputPath(outPath: string, date = new Date()): string {
+  const parsed = path.parse(outPath);
+  const stamp = getTimestampSuffix(date);
+  const withStamp = `${parsed.name}-${stamp}${parsed.ext}`;
+  return path.join(parsed.dir, withStamp);
+}
+
+function tryOpenFile(filePath: string): void {
+  const platform = process.platform;
+  let command = "";
+  let args: string[] = [];
+
+  if (platform === "darwin") {
+    command = "open";
+    args = [filePath];
+  } else if (platform === "win32") {
+    command = "cmd";
+    args = ["/c", "start", "", filePath];
+  } else {
+    command = "xdg-open";
+    args = [filePath];
+  }
+
+  const result = spawnSync(command, args, { stdio: "ignore" });
+  if (result.error || result.status !== 0) {
+    const detail = result.error ? result.error.message : `exit code ${String(result.status ?? "unknown")}`;
+    console.warn(`Warning: Could not open output file automatically (${detail}).`);
+  }
+}
+
 async function main(): Promise<void> {
   dotenv.config();
 
   const requestPath = getArgValue("--request");
-  const outPath = getArgValue("--out") ?? "chart-output.html";
+  const shouldOpenOutput = hasArgFlag("--open-output", "--open-latest");
 
   if (!requestPath) {
     fail("Missing --request argument. Example: --request chart-contract/examples/line.stored-proc.example.json");
@@ -680,6 +1003,58 @@ async function main(): Promise<void> {
   const colorLookup = loadColorLookup();
   const resolvedChartRequest = resolveAppearanceColors(chartRequest, colorLookup);
 
+  const outPath = getArgValue("--out") ?? getDefaultOutputPath(resolvedChartRequest);
+  const outPathWithTimestamp = addTimestampToOutputPath(outPath);
+  const resolvedOutPath = path.resolve(process.cwd(), outPathWithTimestamp);
+
+  if (resolvedChartRequest.output.format === "csv" || resolvedChartRequest.output.format === "xlsx") {
+    const resultSetIndices =
+      resolvedChartRequest.output.format === "xlsx"
+        ? getResultSetIndicesForXlsx(resolvedChartRequest)
+        : [resolvedChartRequest.data_source.result_set_index ?? 0];
+
+    const sheetEntries: Array<{ resultSetIndex: number; rows: DataRow[]; headers: string[] }> = [];
+    for (const resultSetIndex of resultSetIndices) {
+      const rows = await fetchStoredProcRows(resolvedChartRequest, resultSetIndex);
+      const headers = getColumnHeaders(rows, resolvedChartRequest);
+      sheetEntries.push({ resultSetIndex, rows, headers });
+    }
+
+    if (resolvedChartRequest.output.format === "csv") {
+      const first = sheetEntries[0] ?? {
+        resultSetIndex: resolvedChartRequest.data_source.result_set_index ?? 0,
+        rows: [],
+        headers: getColumnHeaders([], resolvedChartRequest)
+      };
+      const csv = toCsv(first.rows, first.headers);
+      fs.writeFileSync(resolvedOutPath, csv, "utf8");
+    } else if (sheetEntries.length <= 1) {
+      const first = sheetEntries[0] ?? {
+        resultSetIndex: resolvedChartRequest.data_source.result_set_index ?? 0,
+        rows: [],
+        headers: getColumnHeaders([], resolvedChartRequest)
+      };
+      const singleSheetName =
+        resolvedChartRequest.export_options?.xlsx?.sheet_name?.trim() ||
+        resolvedChartRequest.export_options?.xlsx?.sheet_names?.[String(first.resultSetIndex)] ||
+        "Data";
+      writeXlsx(first.rows, first.headers, resolvedOutPath, singleSheetName);
+    } else {
+      writeXlsxMultiSheet(sheetEntries, resolvedChartRequest, resolvedOutPath);
+    }
+
+    const totalRows = sheetEntries.reduce((sum, entry) => sum + entry.rows.length, 0);
+
+    console.log(`Validated and exported request: ${resolvedRequestPath}`);
+    console.log(`Fetched ${totalRows} row(s) across ${sheetEntries.length} result set(s).`);
+    console.log(`Saved ${resolvedChartRequest.output.format.toUpperCase()} output to: ${resolvedOutPath}`);
+    if (shouldOpenOutput) {
+      tryOpenFile(resolvedOutPath);
+      console.log(`Opened output file: ${resolvedOutPath}`);
+    }
+    return;
+  }
+
   const endpoint = process.env.CODEX_API_URL ?? "https://api.openai.com/v1/responses";
   const model = process.env.CODEX_MODEL ?? "gpt-5.3-codex";
   const apiKey = process.env.OPENAI_API_KEY ?? process.env.OPEN_AI_KEY;
@@ -695,12 +1070,14 @@ async function main(): Promise<void> {
   const withMonthTicks = normalizeAbbreviatedMonthTicks(withAdapter);
   const withTransport = applyHtmlTransportOverrides(withMonthTicks, resolvedChartRequest);
   const finalHtml = applyProfessionalTheme(withTransport, resolvedChartRequest);
-
-  const resolvedOutPath = path.resolve(process.cwd(), outPath);
   fs.writeFileSync(resolvedOutPath, finalHtml, "utf8");
 
   console.log(`Validated and sent request: ${resolvedRequestPath}`);
   console.log(`Saved chart output to: ${resolvedOutPath}`);
+  if (shouldOpenOutput) {
+    tryOpenFile(resolvedOutPath);
+    console.log(`Opened output file: ${resolvedOutPath}`);
+  }
 }
 
 main().catch((err) => {

@@ -15,6 +15,10 @@
     "run:line:all": "node scripts/run-line-all.js --script run:line --output chart-contract/output/line-chart.html --label line",
     "run:line-series": "node dist/send-chart-request.js --request chart-contract/examples/line.series.example.json --out chart-contract/output/line-series-chart.html",
     "run:line-series:all": "node scripts/run-line-all.js --script run:line-series --output chart-contract/output/line-series-chart.html --label line",
+    "run:line-series:csv": "node dist/send-chart-request.js --request chart-contract/examples/line.series.csv.example.json --out chart-contract/output/line-series-data.csv",
+    "run:line-series:csv:all": "node scripts/run-line-all.js --script run:line-series:csv --output chart-contract/output/line-series-data.csv --label line-series-csv",
+    "run:line-series:xlsx": "node dist/send-chart-request.js --request chart-contract/examples/line.series.xlsx.example.json --out chart-contract/output/line-series-data.xlsx",
+    "run:line-series:xlsx:all": "node scripts/run-line-all.js --script run:line-series:xlsx --output chart-contract/output/line-series-data.xlsx --label line-series-xlsx",
     "run:bar": "node dist/send-chart-request.js --request chart-contract/examples/bar.grouped.example.json --out chart-contract/output/bar-chart.html",
     "run:bar:all": "node scripts/run-line-all.js --script run:bar --output chart-contract/output/bar-chart.html --label bar",
     "run:pie": "node dist/send-chart-request.js --request chart-contract/examples/pie.example.json --out chart-contract/output/pie-chart.html",
@@ -26,7 +30,8 @@
     "ajv": "^8.17.1",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "mysql2": "^3.14.3"
+    "mysql2": "^3.14.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",

@@ -1,0 +1,78 @@
+{
+  "request_version": "1.0",
+  "output": {
+    "format": "xlsx",
+    "theme": "light",
+    "container_id": "chart-root",
+    "width": 1280,
+    "height": 720
+  },
+  "chart": {
+    "type": "line",
+    "title": "Water Flow Comparison: {water_year} vs Average",
+    "show_legend": true,
+    "show_grid": true,
+    "x_axis_label": "Date",
+    "y_axis_label": "Flow (cfs)",
+    "stacked": false,
+    "grid_style": {
+      "color": "rgba(24,79,63,0.45)",
+      "width": 1
+    },
+    "show_data_labels": false,
+    "legend_position": "top",
+    "animation_duration": 750,
+    "y_axis_min": 1000
+  },
+  "data_source": {
+    "proc_schema": "ri",
+    "proc_name": "RiverReleasesByYearWithAvg",
+    "endpoint": "http://localhost:3000/api/stored-proc",
+    "http_method": "GET",
+    "proc_params": {
+      "water_year": 2025
+    },
+    "result_set_index": 0
+  },
+  "mapping": {
+    "xField": "date",
+    "yField": "cfs",
+    "groupField": "series",
+    "labelTemplate": "{series} on {date}",
+    "x_axis_tick_format": "abbreviated_month"
+  },
+  "options": {
+    "tension": 0.8,
+    "pointRadius": 0,
+    "pointHoverRadius": 0,
+    "borderWidth": 2,
+    "fill": false,
+    "point_style": "circle"
+  },
+  "appearance": {
+    "page_background": "linear-gradient(145deg, softmintlight, softmint)",
+    "card_background": "cardlight",
+    "title_color": "softmintlight",
+    "text_color": "forestsoft",
+    "grid_color": "rgba(24,79,63,0.2)",
+    "x_axis_label_color": "white",
+    "x_axis_value_color": "forestsoft",
+    "y_axis_label_color": "white",
+    "y_axis_value_color": "forestsoft",
+    "legend_text_color": "white",
+    "series_colors": ["chartblue", "chartorange", "chartgreen", "chartmauve"]
+  },
+  "export_options": {
+    "column_order": ["date", "series", "cfs"],
+    "include_remaining_columns": true,
+    "xlsx": {
+      "result_set_indices": [0, 1],
+      "sheet_names": {
+        "0": "WaterYear",
+        "1": "Average"
+      },
+      "sheet_name_prefix": "Result"
+    }
+  },
+  "notes": "Excel export example: ordered columns + multi-sheet workbook using result sets 0 and 1."
+}

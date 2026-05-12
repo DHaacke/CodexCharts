@@ -21,7 +21,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": ["html"]
+          "enum": ["html", "csv", "xlsx"]
         },
         "container_id": {
           "type": "string"
@@ -158,6 +158,38 @@
     },
     "notes": {
       "type": "string"
+    },
+    "export_options": {
+      "type": "object",
+      "properties": {
+        "column_order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "include_remaining_columns": {
+          "type": "boolean",
+          "default": true
+        },
+        "xlsx": {
+          "type": "object",
+          "properties": {
+            "sheet_name": { "type": "string" },
+            "result_set_indices": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 0 },
+              "minItems": 1
+            },
+            "sheet_names": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "sheet_name_prefix": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

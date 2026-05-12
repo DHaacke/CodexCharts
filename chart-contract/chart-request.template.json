@@ -65,5 +65,17 @@
     "grid_color": "rgba(24,79,63,0.2)",
     "series_colors": ["chartblue", "chartorange", "chartgreen", "chartmauve"]
   },
-  "notes": "Codex fetches rows using data_source and then applies mapping/options."
+  "export_options": {
+    "column_order": ["date", "series", "cfs"],
+    "include_remaining_columns": true,
+    "xlsx": {
+      "sheet_name": "Data",
+      "result_set_indices": [0],
+      "sheet_names": {
+        "0": "Data"
+      },
+      "sheet_name_prefix": "Result"
+    }
+  },
+  "notes": "Set output.format to html, csv, or xlsx. HTML uses Codex rendering; csv/xlsx export rows directly from the stored procedure endpoint. Use export_options.column_order for stable column ordering and export_options.xlsx.result_set_indices for multi-sheet workbooks."
 }

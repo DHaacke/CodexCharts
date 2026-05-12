@@ -12,9 +12,14 @@ function getArgValue(flag) {
   return process.argv[idx + 1];
 }
 
+function hasArgFlag(flag) {
+  return process.argv.includes(flag);
+}
+
 const RUN_SCRIPT = getArgValue("--script") || "run:line";
 const OUTPUT_PATH = getArgValue("--output") || "chart-contract/output/line-chart.html";
 const LABEL = getArgValue("--label") || "line";
+const OPEN_OUTPUT = hasArgFlag("--open-output") || hasArgFlag("--open-latest");
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -63,10 +68,18 @@ async function main() {
   }
 
   console.log(`[4/4] Generating ${LABEL} chart...`);
-  run("npm", ["run", RUN_SCRIPT]);
+  const runArgs = ["run", RUN_SCRIPT];
+  if (OPEN_OUTPUT) {
+    runArgs.push("--", "--open-output");
+  }
+  run("npm", runArgs);
 
   console.log("Done.");
-  console.log(`Output: ${OUTPUT_PATH}`);
+  console.log(`Output base path: ${OUTPUT_PATH}`);
+  console.log("Generated files include a timestamp suffix before the extension.");
+  if (OPEN_OUTPUT) {
+    console.log("Auto-open was requested via --open-output.");
+  }
   console.log("Server is still running on port 3000.");
   console.log("Stop it with: npm run kill:port");
 }

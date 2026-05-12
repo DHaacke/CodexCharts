@@ -3,46 +3,54 @@ CODEXCHARTS PROJECT CHECKPOINT
 Checkpoint Date: May 10, 2026 (End of Session)
 ================================================================================
 
-LATEST UPDATE: May 11, 2026 (End of Session)
+LATEST UPDATE: May 12, 2026 (End of Session)
 ================================================================================
 
 SESSION STATUS: Stable and validated
 
 COMPLETED THIS SESSION:
-  1) Multi-series line workflow improvements
-     - Long/tidy line-series example finalized
-     - Hidden points + tooltip behavior confirmed
-     - Grid controls added (show_grid + grid_style)
+  1) PHASE 1 complete: CSV export output with column headers
+    - Added output.format support: csv
+    - Added direct stored-procedure fetch path in CLI exporter
+    - Added CSV writer with header row + escaped values
 
-  2) New chart options added and documented in schema/prompt/examples
-     - show_data_labels
-     - legend_position
-     - animation_duration
-     - y_axis_min / y_axis_max
-     - border_radius (bar)
-     - point_style (line/scatter)
+  2) PHASE 2 complete: Excel workbook output (.xlsx)
+    - Added output.format support: xlsx
+    - Added workbook writer using xlsx package
+    - Added line-series csv/xlsx examples and npm scripts
 
-  3) Theme mode support enabled in templates and renderer styling
-     - output.theme now used with values: light | dark | auto
-     - Injected HTML styling now honors theme mode
-     - All 5 example templates updated with theme: auto
+  3) HTML rendering flow preserved and unchanged
+    - HTML branch still uses Codex API renderer + theme injection
+    - OPENAI_API_KEY now required only for html output mode
 
-  4) SVG/PDF experiment completed then fully removed per user request
-     - Removed all svg/pdf generation code paths
-     - Reverted schema output.format to html-only
-     - Reverted runner output reporting to static html path
-     - Confirmed html-only pipeline build + run works
+  4) Export controls added for tabular outputs
+    - Added export_options.column_order for deterministic column ordering
+    - Added export_options.include_remaining_columns toggle
+    - Added export_options.xlsx.result_set_indices for multi-sheet export
+    - Added export_options.xlsx.sheet_names and sheet_name_prefix controls
+
+  5) Timestamped output filenames added for all generated artifacts
+    - Output files now append -YY-MM-DD-HHmm before extension
+    - Applies to html, csv, and xlsx output formats
+
+  6) Optional auto-open CLI flag added
+    - Added --open-output flag (alias: --open-latest)
+    - Supported by direct generator runs and :all wrapper scripts
+    - Opens the newly generated timestamped output file
 
 CURRENT OUTPUT MODE:
-  - HTML only (intentional)
+  - HTML (Codex renderer)
+  - CSV (direct stored-procedure export)
+  - XLSX (direct stored-procedure export)
 
 NEXT SESSION PLAN (USER CONFIRMED):
-  PHASE 1: Add CSV output format with column headers
-  PHASE 2: Add Excel workbook output (.xlsx)
+  - Optional: Add per-sheet column-order overrides
+  - Optional: Add CSV multi-result-set zip output mode
 
 NOTES FOR RESUME:
   - Do not reintroduce svg/pdf generation
-  - Keep output quality centered on HTML + upcoming CSV/XLSX
+  - Keep HTML quality centered on Codex renderer branch
+  - CSV/XLSX branch should continue using stored-procedure endpoint data only
 
 --------------------------------------------------------------------------------
 

@@ -21,7 +21,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": ["html", "svg", "pdf"]
+          "enum": ["html"]
         },
         "container_id": {
           "type": "string"

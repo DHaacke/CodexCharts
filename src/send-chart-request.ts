@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 interface ChartRequest {
   request_version: string;
   output: {
-    format: "html" | "svg" | "pdf";
+    format: "html";
     container_id: string;
     width?: number;
     height?: number;
@@ -379,6 +379,14 @@ function buildLayoutVars(request: ChartRequest): string {
   return `--requested-card-width: ${requestedWidth}; --requested-card-height: ${requestedCardHeight}; --requested-plot-height: ${requestedPlotHeight};`;
 }
 
+function getThemeMode(request: ChartRequest): "light" | "dark" | "auto" {
+  const theme = request.output.theme;
+  if (theme === "light" || theme === "dark" || theme === "auto") {
+    return theme;
+  }
+  return "auto";
+}
+
 function applyProfessionalTheme(html: string, request: ChartRequest): string {
   if (html.includes("chart-theme-injected")) {
     return html;
@@ -386,6 +394,7 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
 
   const themeVars = buildThemeVars(request);
   const layoutVars = buildLayoutVars(request);
+  const themeMode = getThemeMode(request);
 
   const themedHead = `
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -401,11 +410,55 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
       --ink: #184f3f;
       --ink-soft: #2f6f5d;
       --line: rgba(24, 79, 63, 0.2);
-      --shadow: 0 28px 60px rgba(23, 58, 52, 0.22);      --custom-x-axis-label: #184f3f;
+      --shadow: 0 28px 60px rgba(23, 58, 52, 0.22);
+      --glow-a: rgba(255, 255, 255, 0.52);
+      --glow-b: rgba(255, 255, 255, 0.4);
+      --panel-bg: rgba(255, 255, 255, 0.7);
+      --error-bg: rgba(255, 236, 236, 0.88);
+      --error-border: rgba(167, 48, 48, 0.28);
+      --error-text: #7f1d1d;
+      --custom-x-axis-label: #184f3f;
       --custom-x-axis-value: #2f6f5d;
       --custom-y-axis-label: #184f3f;
       --custom-y-axis-value: #2f6f5d;
-      --custom-legend-text: #184f3f;    }
+      --custom-legend-text: #184f3f;
+    }
+
+    body[data-theme='dark'] {
+      --bg-a: #10221d;
+      --bg-b: #0b1815;
+      --card: rgba(19, 39, 34, 0.9);
+      --ink: #d7ece5;
+      --ink-soft: #b7d8ce;
+      --line: rgba(143, 191, 174, 0.28);
+      --shadow: 0 28px 60px rgba(2, 10, 8, 0.5);
+      --glow-a: rgba(0, 0, 0, 0.22);
+      --glow-b: rgba(0, 0, 0, 0.35);
+      --panel-bg: rgba(12, 30, 25, 0.72);
+      --error-bg: rgba(84, 28, 28, 0.55);
+      --error-border: rgba(228, 119, 119, 0.4);
+      --error-text: #ffd1d1;
+      color-scheme: dark;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body[data-theme='auto'] {
+        --bg-a: #10221d;
+        --bg-b: #0b1815;
+        --card: rgba(19, 39, 34, 0.9);
+        --ink: #d7ece5;
+        --ink-soft: #b7d8ce;
+        --line: rgba(143, 191, 174, 0.28);
+        --shadow: 0 28px 60px rgba(2, 10, 8, 0.5);
+        --glow-a: rgba(0, 0, 0, 0.22);
+        --glow-b: rgba(0, 0, 0, 0.35);
+        --panel-bg: rgba(12, 30, 25, 0.72);
+        --error-bg: rgba(84, 28, 28, 0.55);
+        --error-border: rgba(228, 119, 119, 0.4);
+        --error-text: #ffd1d1;
+        color-scheme: dark;
+      }
+    }
 
     html, body {
       min-height: 100%;
@@ -419,8 +472,8 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
       align-items: initial !important;
       justify-content: initial !important;
       background:
-        radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.52), transparent 38%),
-        radial-gradient(circle at 90% 100%, rgba(255, 255, 255, 0.4), transparent 35%),
+        radial-gradient(circle at 8% 0%, var(--glow-a), transparent 38%),
+        radial-gradient(circle at 90% 100%, var(--glow-b), transparent 35%),
         var(--custom-page-bg, linear-gradient(145deg, var(--bg-a), var(--bg-b))) !important;
       padding: clamp(16px, 2.5vw, 34px);
       box-sizing: border-box;
@@ -459,7 +512,7 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
       font-size: 13px !important;
       font-weight: 600;
       color: var(--custom-text, var(--ink-soft)) !important;
-      background: rgba(255, 255, 255, 0.7) !important;
+      background: var(--panel-bg) !important;
       border: 1px solid var(--line) !important;
       border-radius: 10px !important;
       padding: 8px 12px !important;
@@ -468,9 +521,9 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
 
     #error {
       border-radius: 10px !important;
-      border: 1px solid rgba(167, 48, 48, 0.28) !important;
-      background: rgba(255, 236, 236, 0.88) !important;
-      color: #7f1d1d !important;
+      border: 1px solid var(--error-border) !important;
+      background: var(--error-bg) !important;
+      color: var(--error-text) !important;
     }
 
     .card {
@@ -531,7 +584,7 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
 
   let themed = html.replace(/<\/head>/i, `${themedHead}\n</head>`);
 
-  themed = themed.replace(/<body([^>]*)>/i, "<body$1><div class=\"page-shell\"><div class=\"chart-card\">");
+  themed = themed.replace(/<body([^>]*)>/i, `<body$1 data-theme="${themeMode}"><div class="page-shell"><div class="chart-card">`);
   themed = themed.replace(/<\/body>/i, "</div></div></body>");
 
   return themed;

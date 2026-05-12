@@ -2,6 +2,7 @@
   "request_version": "1.0",
   "output": {
     "format": "html",
+    "theme": "auto",
     "container_id": "chart-root",
     "width": 1280,
     "height": 760

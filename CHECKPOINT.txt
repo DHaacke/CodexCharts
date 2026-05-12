@@ -3,6 +3,49 @@ CODEXCHARTS PROJECT CHECKPOINT
 Checkpoint Date: May 10, 2026 (End of Session)
 ================================================================================
 
+LATEST UPDATE: May 11, 2026 (End of Session)
+================================================================================
+
+SESSION STATUS: Stable and validated
+
+COMPLETED THIS SESSION:
+  1) Multi-series line workflow improvements
+     - Long/tidy line-series example finalized
+     - Hidden points + tooltip behavior confirmed
+     - Grid controls added (show_grid + grid_style)
+
+  2) New chart options added and documented in schema/prompt/examples
+     - show_data_labels
+     - legend_position
+     - animation_duration
+     - y_axis_min / y_axis_max
+     - border_radius (bar)
+     - point_style (line/scatter)
+
+  3) Theme mode support enabled in templates and renderer styling
+     - output.theme now used with values: light | dark | auto
+     - Injected HTML styling now honors theme mode
+     - All 5 example templates updated with theme: auto
+
+  4) SVG/PDF experiment completed then fully removed per user request
+     - Removed all svg/pdf generation code paths
+     - Reverted schema output.format to html-only
+     - Reverted runner output reporting to static html path
+     - Confirmed html-only pipeline build + run works
+
+CURRENT OUTPUT MODE:
+  - HTML only (intentional)
+
+NEXT SESSION PLAN (USER CONFIRMED):
+  PHASE 1: Add CSV output format with column headers
+  PHASE 2: Add Excel workbook output (.xlsx)
+
+NOTES FOR RESUME:
+  - Do not reintroduce svg/pdf generation
+  - Keep output quality centered on HTML + upcoming CSV/XLSX
+
+--------------------------------------------------------------------------------
+
 PROJECT STATUS: ✅ PRODUCTION-READY
 All four chart types (line, bar, pie, scatter) fully functional with professional
 styling, JSON-driven customization, and comprehensive color controls.

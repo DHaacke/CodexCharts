@@ -8,62 +8,68 @@
   <style>
     :root {
       --page-bg: linear-gradient(145deg, #d7e7df, #bfd6ce);
-      --card-bg: rgba(243,250,246,0.82);
+      --card-bg: #f3faf6;
       --title-color: #184f3f;
       --text-color: #2f6f5d;
       --grid-color: rgba(24,79,63,0.2);
     }
-    body {
+    html, body {
       margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
       background: var(--page-bg);
       color: var(--text-color);
     }
     .wrap {
       width: 1180px;
-      margin: 18px auto;
+      height: 680px;
+      margin: 12px auto;
+      box-sizing: border-box;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 10px 14px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     .transport {
       font-size: 12px;
-      padding: 8px 10px;
+      line-height: 1.3;
+      color: var(--text-color);
+      background: rgba(255,255,255,0.5);
       border: 1px solid rgba(0,0,0,0.08);
       border-radius: 8px;
-      background: rgba(255,255,255,0.65);
-      color: #123a2f;
-      margin-bottom: 10px;
-      word-break: break-all;
+      padding: 6px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .card {
-      background: var(--card-bg);
-      border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-      border: 1px solid rgba(255,255,255,0.55);
-      padding: 14px 16px 12px;
-    }
-    .title {
-      margin: 0 0 8px 0;
-      font-weight: 700;
-      color: var(--title-color);
+    .chart-title {
+      margin: 0;
       font-size: 20px;
+      color: var(--title-color);
+      font-weight: 700;
     }
-    .error {
-      margin-top: 8px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: #ffe9e9;
-      color: #8a1f1f;
-      border: 1px solid #efb0b0;
-      font-size: 13px;
-      white-space: pre-wrap;
+    .canvas-holder {
+      position: relative;
+      flex: 1;
+      min-height: 0;
     }
     #chart-root {
-      width: 1180px;
-      height: 680px;
-      position: relative;
+      width: 100%;
+      height: 100%;
     }
-    canvas {
-      width: 100% !important;
-      height: 620px !important;
+    .error {
+      color: #b00020;
+      background: #ffe9ec;
+      border: 1px solid #ffb8c2;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      white-space: pre-wrap;
     }
   </style>
 
@@ -72,7 +78,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <style id="chart-theme-injected">
     :root {
-      --custom-page-bg: linear-gradient(145deg, #d7e7df, #bfd6ce); --custom-card-bg: rgba(243,250,246,0.82); --custom-title: #184f3f; --custom-text: #2f6f5d; --custom-grid: rgba(24,79,63,0.2); --custom-x-axis-label: #184f3f; --custom-x-axis-value: #2f6f5d; --custom-y-axis-label: #184f3f; --custom-y-axis-value: #2f6f5d; --custom-legend-text: #184f3f;
+      --custom-page-bg: linear-gradient(145deg, #d7e7df, #bfd6ce); --custom-card-bg: #f3faf6; --custom-title: #184f3f; --custom-text: #2f6f5d; --custom-grid: rgba(24,79,63,0.2); --custom-x-axis-label: #184f3f; --custom-x-axis-value: #2f6f5d; --custom-y-axis-label: #184f3f; --custom-y-axis-value: #2f6f5d; --custom-legend-text: #184f3f;
       --requested-card-width: 1180px; --requested-card-height: 680px; --requested-plot-height: calc(680px - 156px);
       --bg-a: #d7e7df;
       --bg-b: #bfd6ce;
@@ -211,158 +217,166 @@
 <body><div class="page-shell"><div class="chart-card">
   <div class="wrap">
     <div id="transport" class="transport"></div>
-    <div class="card">
-      <h2 id="chartTitle" class="title"></h2>
-      <div id="chart-root">
-        <canvas id="chartCanvas"></canvas>
-      </div>
+    <h1 id="title" class="chart-title"></h1>
+    <div class="canvas-holder">
+      <canvas id="chart-root"></canvas>
       <div id="error" class="error" style="display:none;"></div>
     </div>
   </div>
 
   <script>
     (async function () {
-      const request = {"request_version":"1.0","output":{"format":"html","container_id":"chart-root","width":1180,"height":680},"chart":{"type":"line","title":"{species} {from_year}-{to_year} Survey by Year","show_legend":true,"x_axis_label":"Year","y_axis_label":"Abundance","stacked":false},"data_source":{"proc_schema":"ri","proc_name":"FWPSpeciesCountByYear","endpoint":"http://localhost:3000/api/stored-proc","http_method":"GET","proc_params":{"from_year":"2024","to_year":"2026"},"result_set_index":0},"mapping":{"xField":"year","yField":"abundance","groupField":"species"},"options":{"tension":0.2,"pointRadius":2},"appearance":{"page_background":"linear-gradient(145deg, #d7e7df, #bfd6ce)","card_background":"rgba(243,250,246,0.82)","title_color":"#184f3f","text_color":"#2f6f5d","grid_color":"rgba(24,79,63,0.2)","x_axis_label_color":"#184f3f","x_axis_value_color":"#2f6f5d","y_axis_label_color":"#184f3f","y_axis_value_color":"#2f6f5d","legend_text_color":"#184f3f","series_colors":["#2b8cbe","#f28e2b","#59a14f","#af7aa1"]}};
+      const spec = {"request_version":"1.0","output":{"format":"html","container_id":"chart-root","width":1180,"height":680},"chart":{"type":"line","title":"{species} {from_year}-{to_year} Survey by Year","show_legend":true,"x_axis_label":"Year","y_axis_label":"Abundance","stacked":false},"data_source":{"proc_schema":"ri","proc_name":"FWPSpeciesCountByYear","endpoint":"http://localhost:3000/api/stored-proc","http_method":"GET","proc_params":{"from_year":"2024","to_year":"2026"},"result_set_index":0},"mapping":{"xField":"year","yField":"abundance","groupField":"species"},"options":{"tension":0.2,"pointRadius":2},"appearance":{"page_background":"linear-gradient(145deg, #d7e7df, #bfd6ce)","card_background":"#f3faf6","title_color":"#184f3f","text_color":"#2f6f5d","grid_color":"rgba(24,79,63,0.2)","x_axis_label_color":"#184f3f","x_axis_value_color":"#2f6f5d","y_axis_label_color":"#184f3f","y_axis_value_color":"#2f6f5d","legend_text_color":"#184f3f","series_colors":["#2b8cbe","#f28e2b","#59a14f","#af7aa1"]}};
 
-      const ds = request.data_source || {};
-      const mapping = request.mapping || {};
-      const appearance = request.appearance || {};
-      const chartCfg = request.chart || {};
-      const opts = request.options || {};
+      const errorEl = document.getElementById('error');
+      const transportEl = document.getElementById('transport');
+      const titleEl = document.getElementById('title');
 
-      const endpoint = ds.endpoint || "/api/stored-proc";
-      const method = (ds.http_method || "POST").toUpperCase();
+      function showError(msg) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = msg;
+      }
 
-      const transportEl = document.getElementById("transport");
+      function applyTemplate(template, row, fallback) {
+        if (!template || typeof template !== 'string') return '';
+        return template.replace(/\{([^}]+)\}/g, (_, key) => {
+          if (row && row[key] != null) return String(row[key]);
+          if (fallback && fallback[key] != null) return String(fallback[key]);
+          return '';
+        }).trim();
+      }
+
+      const appearance = spec.appearance || {};
+      if (appearance.page_background) document.documentElement.style.setProperty('--page-bg', appearance.page_background);
+      if (appearance.card_background) document.documentElement.style.setProperty('--card-bg', appearance.card_background);
+      if (appearance.title_color) document.documentElement.style.setProperty('--title-color', appearance.title_color);
+      if (appearance.text_color) document.documentElement.style.setProperty('--text-color', appearance.text_color);
+      if (appearance.grid_color) document.documentElement.style.setProperty('--grid-color', appearance.grid_color);
+
+      const ds = spec.data_source || {};
+      const endpoint = ds.endpoint || '/api/stored-proc';
+      const method = (ds.http_method || 'POST').toUpperCase();
+      const proc_schema = ds.proc_schema;
+      const proc_name = ds.proc_name;
+      const proc_params = ds.proc_params || {};
+      const result_set_index = ds.result_set_index ?? 0;
+
       transportEl.textContent = `Endpoint: http://localhost:3000/api/stored-proc | Method: GET | Proc: FWPSpeciesCountByYear | Request URL: /api/stored-proc?proc_schema=ri&proc_name=FWPSpeciesCountByYear&result_set_index=0&proc_params.from_year=2024&proc_params.to_year=2026`;
 
-      const errorEl = document.getElementById("error");
-      const showError = (msg) => {
-        errorEl.style.display = "block";
-        errorEl.textContent = msg;
-      };
-
-      if (appearance.page_background) document.documentElement.style.setProperty("--page-bg", appearance.page_background);
-      if (appearance.card_background) document.documentElement.style.setProperty("--card-bg", appearance.card_background);
-      if (appearance.title_color) document.documentElement.style.setProperty("--title-color", appearance.title_color);
-      if (appearance.text_color) document.documentElement.style.setProperty("--text-color", appearance.text_color);
-      if (appearance.grid_color) document.documentElement.style.setProperty("--grid-color", appearance.grid_color);
+      const titleText = applyTemplate(spec.chart?.title || '', {}, proc_params) || '';
+      titleEl.textContent = titleText;
 
       let url = endpoint;
-      const payload = {
-        proc_schema: ds.proc_schema,
-        proc_name: ds.proc_name,
-        proc_params: ds.proc_params,
-        result_set_index: ds.result_set_index
-      };
+      let fetchOptions = { method, headers: {} };
 
-      const fetchOptions = { method, headers: {} };
-
-      if (method === "GET") {
-        const params = new URLSearchParams();
-        params.set("proc_schema", ds.proc_schema ?? "");
-        params.set("proc_name", ds.proc_name ?? "");
-        params.set("proc_params", JSON.stringify(ds.proc_params ?? {}));
-        params.set("result_set_index", String(ds.result_set_index ?? 0));
-        url += (url.includes("?") ? "&" : "?") + params.toString();
+      if (method === 'GET') {
+        const q = new URLSearchParams();
+        q.set('proc_schema', proc_schema ?? '');
+        q.set('proc_name', proc_name ?? '');
+        q.set('result_set_index', String(result_set_index));
+        q.set('proc_params', JSON.stringify(proc_params));
+        url += (url.includes('?') ? '&' : '?') + q.toString();
       } else {
-        fetchOptions.headers["Content-Type"] = "application/json";
-        fetchOptions.body = JSON.stringify(payload);
+        fetchOptions.headers['Content-Type'] = 'application/json';
+        fetchOptions.body = JSON.stringify({ proc_schema, proc_name, proc_params, result_set_index });
       }
 
       let rows;
       try {
         const res = await fetch(url, fetchOptions);
         if (!res.ok) {
-          showError(`Fetch failed: status ${res.status} (${method} ${endpoint})`);
+          showError(`Fetch failed: status ${res.status} (${res.statusText}) via ${method} ${endpoint}`);
           return;
         }
-        const data = await res.json();
-        rows = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : (Array.isArray(data?.data) ? data.data : []));
+        const payload = await res.json();
+        if (Array.isArray(payload)) rows = payload;
+        else if (Array.isArray(payload?.data)) rows = payload.data;
+        else if (Array.isArray(payload?.rows)) rows = payload.rows;
+        else if (Array.isArray(payload?.result)) rows = payload.result;
+        else rows = [];
       } catch (e) {
-        showError(`Fetch failed: status network_error (${method} ${endpoint})`);
+        showError(`Fetch failed: ${e.message} via ${method} ${endpoint}`);
         return;
       }
 
-      const requiredFields = [];
-      if (mapping.xField) requiredFields.push(mapping.xField);
-      if (mapping.yField) requiredFields.push(mapping.yField);
-      if (mapping.groupField) requiredFields.push(mapping.groupField);
+      const map = spec.mapping || {};
+      const required = [];
+      if (map.xField) required.push(map.xField);
+      if (map.yField) required.push(map.yField);
+      if (map.groupField) required.push(map.groupField);
 
-      const hasValidRow = rows.some(r => requiredFields.every(f => Object.prototype.hasOwnProperty.call(r, f)));
-      if (!hasValidRow) {
-        const missing = requiredFields.filter(f => !rows.some(r => Object.prototype.hasOwnProperty.call(r, f)));
-        showError(`Missing required mapped field(s): ${missing.join(", ")}`);
+      const validRow = rows.find(r => required.every(f => Object.prototype.hasOwnProperty.call(r, f)));
+      if (!validRow) {
+        const missing = required.filter(f => !rows.some(r => Object.prototype.hasOwnProperty.call(r, f)));
+        showError(`Missing required mapped field(s): ${missing.join(', ')}`);
         return;
       }
 
-      const applyTemplate = (tpl, row, fallback) =>
-        String(tpl).replace(/\{([^}]+)\}/g, (_, key) => {
-          if (row && row[key] != null) return row[key];
-          if (fallback && fallback[key] != null) return fallback[key];
-          return "";
-        });
+      const xField = map.xField;
+      const yField = map.yField;
+      const groupField = map.groupField;
 
-      const titleText = applyTemplate(chartCfg.title || "", rows[0] || {}, ds.proc_params || {});
-      document.getElementById("chartTitle").textContent = titleText;
-
-      const xField = mapping.xField;
-      const yField = mapping.yField;
-      const gField = mapping.groupField;
-
-      const groups = new Map();
-      for (const r of rows) {
-        if (!Object.prototype.hasOwnProperty.call(r, xField) || !Object.prototype.hasOwnProperty.call(r, yField) || !Object.prototype.hasOwnProperty.call(r, gField)) continue;
-        const g = r[gField];
-        if (!groups.has(g)) groups.set(g, []);
-        groups.get(g).push(r);
-      }
+      const filtered = rows.filter(r =>
+        Object.prototype.hasOwnProperty.call(r, xField) &&
+        Object.prototype.hasOwnProperty.call(r, yField) &&
+        Object.prototype.hasOwnProperty.call(r, groupField)
+      );
 
       const xSet = new Set();
-      groups.forEach(arr => arr.forEach(r => xSet.add(r[xField])));
-      const xLabels = Array.from(xSet).sort((a, b) => (a > b ? 1 : a < b ? -1 : 0));
+      filtered.forEach(r => xSet.add(String(r[xField])));
+      const xLabels = Array.from(xSet).sort((a,b) => {
+        const na = Number(a), nb = Number(b);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        return a.localeCompare(b);
+      });
 
-      const colors = Array.isArray(appearance.series_colors) && appearance.series_colors.length ? appearance.series_colors : ["#3366cc","#dc3912","#ff9900","#109618","#990099"];
-
-      const datasets = Array.from(groups.entries()).map(([g, arr], i) => {
-        const map = new Map(arr.map(r => [r[xField], r[yField]]));
-        const data = xLabels.map(x => map.has(x) ? map.get(x) : null);
-        const c = colors[i % colors.length];
+      const groups = Array.from(new Set(filtered.map(r => String(r[groupField]))));
+      const seriesColors = Array.isArray(appearance.series_colors) && appearance.series_colors.length ? appearance.series_colors : [];
+      const datasets = groups.map((g, idx) => {
+        const pointsByX = new Map();
+        filtered.forEach(r => {
+          if (String(r[groupField]) === g) pointsByX.set(String(r[xField]), Number(r[yField]));
+        });
+        const data = xLabels.map(x => pointsByX.has(x) ? pointsByX.get(x) : null);
+        const c = seriesColors.length ? seriesColors[idx % seriesColors.length] : undefined;
         return {
-          label: String(g),
+          label: g,
           data,
-          borderColor: c,
-          backgroundColor: c,
           fill: false,
-          tension: typeof opts.tension === "number" ? opts.tension : 0,
-          pointRadius: typeof opts.pointRadius === "number" ? opts.pointRadius : 3
+          tension: spec.options?.tension ?? 0,
+          pointRadius: spec.options?.pointRadius ?? 3,
+          borderColor: c,
+          backgroundColor: c
         };
       });
 
-      const ctx = document.getElementById("chartCanvas").getContext("2d");
+      const ctx = document.getElementById(spec.output?.container_id || 'chart-root').getContext('2d');
       new Chart(ctx, {
-        type: "line",
+        type: 'line',
         data: { labels: xLabels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: !!chartCfg.show_legend,
+              display: !!spec.chart?.show_legend,
               labels: {
-                color: appearance.legend_text_color || undefined
+                color: appearance.legend_text_color || appearance.text_color || undefined
               }
             },
+            title: { display: false },
             tooltip: {
-              callbacks: {}
+              callbacks: {
+                title: (items) => items?.[0]?.label ?? ''
+              }
             }
           },
           scales: {
             x: {
-              stacked: !!chartCfg.stacked,
+              stacked: !!spec.chart?.stacked,
               title: {
-                display: !!chartCfg.x_axis_label,
-                text: chartCfg.x_axis_label || "",
+                display: !!spec.chart?.x_axis_label,
+                text: spec.chart?.x_axis_label || '',
                 color: appearance.x_axis_label_color || undefined
               },
               ticks: {
@@ -373,10 +387,10 @@
               }
             },
             y: {
-              stacked: !!chartCfg.stacked,
+              stacked: !!spec.chart?.stacked,
               title: {
-                display: !!chartCfg.y_axis_label,
-                text: chartCfg.y_axis_label || "",
+                display: !!spec.chart?.y_axis_label,
+                text: spec.chart?.y_axis_label || '',
                 color: appearance.y_axis_label_color || undefined
               },
               ticks: {

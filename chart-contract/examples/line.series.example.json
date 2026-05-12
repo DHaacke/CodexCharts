@@ -3,58 +3,63 @@
   "output": {
     "format": "html",
     "container_id": "chart-root",
-    "width": 1180,
-    "height": 680
+    "width": 1280,
+    "height": 720
   },
   "chart": {
     "type": "line",
-    "title": "{species} {from_year}-{to_year} Survey by Year",
+    "title": "Water Flow Comparison: {water_year} vs Average",
     "show_legend": true,
     "show_grid": true,
-    "x_axis_label": "Year",
-    "y_axis_label": "Abundance",
+    "x_axis_label": "Date",
+    "y_axis_label": "Flow (cfs)",
     "stacked": false,
     "grid_style": {
-      "color": "rgba(24,79,63,0.15)",
+      "color": "rgba(24,79,63,0.45)",
       "width": 1
     },
     "show_data_labels": false,
     "legend_position": "top",
     "animation_duration": 750,
-    "y_axis_min": 0
+    "y_axis_min": 1000
   },
   "data_source": {
     "proc_schema": "ri",
-    "proc_name": "FWPSpeciesCountByYear",
+    "proc_name": "RiverReleasesByYearWithAvg",
     "endpoint": "http://localhost:3000/api/stored-proc",
     "http_method": "GET",
     "proc_params": {
-      "from_year": "2024",
-      "to_year": "2026"
+      "water_year": 2025
     },
     "result_set_index": 0
   },
   "mapping": {
-    "xField": "year",
-    "yField": "abundance",
-    "groupField": "species"
+    "xField": "date",
+    "yField": "cfs",
+    "groupField": "series",
+    "labelTemplate": "{series} on {date}",
+    "x_axis_tick_format": "abbreviated_month"
   },
   "options": {
-    "tension": 0.2,
-    "pointRadius": 2,
+    "tension": 0.8,
+    "pointRadius": 0,
+    "pointHoverRadius": 0,
+    "borderWidth": 2,
+    "fill": false,
     "point_style": "circle"
   },
   "appearance": {
     "page_background": "linear-gradient(145deg, softmintlight, softmint)",
     "card_background": "cardlight",
-    "title_color": "forestdark",
+    "title_color": "softmintlight",
     "text_color": "forestsoft",
     "grid_color": "rgba(24,79,63,0.2)",
-    "x_axis_label_color": "forestdark",
+    "x_axis_label_color": "white",
     "x_axis_value_color": "forestsoft",
-    "y_axis_label_color": "forestdark",
+    "y_axis_label_color": "white",
     "y_axis_value_color": "forestsoft",
-    "legend_text_color": "forestdark",
+    "legend_text_color": "white",
     "series_colors": ["chartblue", "chartorange", "chartgreen", "chartmauve"]
-  }
+  },
+  "notes": "Long/tidy format: each row has series_name, date, value. Multiple series grouped by series_name (e.g., '2025', 'Average'). This format is flexible for any number of series without contract changes."
 }

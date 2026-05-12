@@ -61,6 +61,8 @@ interface CodexResponse {
   [key: string]: unknown;
 }
 
+type ColorLookup = Record<string, string>;
+
 function fail(message: string): never {
   console.error(`Error: ${message}`);
   process.exit(1);
@@ -127,6 +129,68 @@ function validateRequiredMappings(request: ChartRequest): void {
   }
 }
 
+function loadColorLookup(): ColorLookup {
+  const colorFilePath = path.resolve(process.cwd(), "scripts/colors.js");
+
+  if (!fs.existsSync(colorFilePath)) {
+    return {};
+  }
+
+  const loaded = require(colorFilePath) as unknown;
+  if (!loaded || typeof loaded !== "object") {
+    return {};
+  }
+
+  const lookup: ColorLookup = {};
+  for (const [key, value] of Object.entries(loaded as Record<string, unknown>)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    lookup[key.toLowerCase()] = value;
+  }
+
+  return lookup;
+}
+
+function resolveColorNamesInString(value: string | undefined, colorLookup: ColorLookup): string | undefined {
+  if (!value || Object.keys(colorLookup).length === 0) {
+    return value;
+  }
+
+  return value.replace(/\b([A-Za-z][A-Za-z0-9_-]*)\b/g, (token) => {
+    const resolved = colorLookup[token.toLowerCase()];
+    return resolved ?? token;
+  });
+}
+
+function resolveAppearanceColors(request: ChartRequest, colorLookup: ColorLookup): ChartRequest {
+  if (!request.appearance) {
+    return request;
+  }
+
+  const appearance = request.appearance;
+  const resolvedAppearance = {
+    ...appearance,
+    page_background: resolveColorNamesInString(appearance.page_background, colorLookup),
+    card_background: resolveColorNamesInString(appearance.card_background, colorLookup),
+    title_color: resolveColorNamesInString(appearance.title_color, colorLookup),
+    text_color: resolveColorNamesInString(appearance.text_color, colorLookup),
+    axis_color: resolveColorNamesInString(appearance.axis_color, colorLookup),
+    grid_color: resolveColorNamesInString(appearance.grid_color, colorLookup),
+    x_axis_label_color: resolveColorNamesInString(appearance.x_axis_label_color, colorLookup),
+    x_axis_value_color: resolveColorNamesInString(appearance.x_axis_value_color, colorLookup),
+    y_axis_label_color: resolveColorNamesInString(appearance.y_axis_label_color, colorLookup),
+    y_axis_value_color: resolveColorNamesInString(appearance.y_axis_value_color, colorLookup),
+    legend_text_color: resolveColorNamesInString(appearance.legend_text_color, colorLookup),
+    series_colors: appearance.series_colors?.map((entry) => resolveColorNamesInString(entry, colorLookup) ?? entry)
+  };
+
+  return {
+    ...request,
+    appearance: resolvedAppearance
+  };
+}
+
 function buildCodexPayload(chartRequest: ChartRequest, model: string): Record<string, unknown> {
   return {
     model,
@@ -136,7 +200,7 @@ function buildCodexPayload(chartRequest: ChartRequest, model: string): Record<st
         content: [
           {
             type: "input_text",
-            text: "You are a chart renderer. Return ONLY a complete HTML document that renders the chart from the provided chart request JSON. Do not include markdown fences. Never include hardcoded mock/fallback rows (for example Trout/Salmon/Pike or any fabricated sample data). Use only data fetched from the configured stored-procedure endpoint. Respect mapping field names exactly as provided, including case. Add a runtime guard before chart creation: verify at least one returned row contains every mapped field required by the chart type, and if any are missing, show an error listing missing field names and stop rendering. Endpoint behavior: if data_source.endpoint is provided, fetch that URL; otherwise use /api/stored-proc. If data_source.http_method is provided, use it; otherwise use POST. For POST, send JSON body with proc_schema, proc_name, proc_params, result_set_index. For GET, send those values as query string parameters and do not send a body. At the top of the page, render a compact visible transport summary that shows the endpoint, method, and proc_name. If fetch fails, render a visible error message that includes status code and method+endpoint. If appearance.series_colors is present, apply those colors to datasets in order (cycle if needed) using borderColor and backgroundColor. If appearance.axis_color or appearance.grid_color is present, apply those to scales/ticks/grid where applicable. If appearance.x_axis_label_color is present, apply it to the x-axis title. If appearance.x_axis_value_color is present, apply it to the x-axis tick labels (value labels). If appearance.y_axis_label_color is present, apply it to the y-axis title. If appearance.y_axis_value_color is present, apply it to the y-axis tick labels (value labels). If appearance.legend_text_color is present, apply it to legend labels and text. If mapping.labelTemplate is present, build display labels from it by replacing {fieldName} placeholders from each row, falling back to data_source.proc_params when needed. Use those computed labels for pie chart legend labels and tooltip labels, and for other chart types where a display label is needed."
+            text: "You are a chart renderer. Return ONLY a complete HTML document that renders the chart from the provided chart request JSON. Do not include markdown fences. Never include hardcoded mock/fallback rows (for example Trout/Salmon/Pike or any fabricated sample data). Use only data fetched from the configured stored-procedure endpoint. Respect mapping field names exactly as provided, including case. Add a runtime guard before chart creation: verify at least one returned row contains every mapped field required by the chart type, and if any are missing, show an error listing missing field names and stop rendering. Endpoint behavior: if data_source.endpoint is provided, fetch that URL; otherwise use /api/stored-proc. If data_source.http_method is provided, use it; otherwise use POST. For POST, send JSON body with proc_schema, proc_name, proc_params, result_set_index. For GET, send those values as query string parameters and do not send a body. At the top of the page, render a compact visible transport summary that shows the endpoint, method, and proc_name. If fetch fails, render a visible error message that includes status code and method+endpoint. If appearance.series_colors is present, apply those colors to datasets in order (cycle if needed) using borderColor and backgroundColor. If appearance.axis_color or appearance.grid_color is present, apply those to scales/ticks/grid where applicable. If appearance.x_axis_label_color is present, apply it to the x-axis title. If appearance.x_axis_value_color is present, apply it to the x-axis tick labels (value labels). If appearance.y_axis_label_color is present, apply it to the y-axis title. If appearance.y_axis_value_color is present, apply it to the y-axis tick labels (value labels). If appearance.legend_text_color is present, apply it to legend labels and text. If options.borderWidth is present, apply it to all line datasets as the line stroke width. For line charts with date/timestamp x-values and mapping.x_axis_tick_format present, use type:'time' for the x-axis scale and convert all x-values to numeric millisecond timestamps using new Date(xValue).getTime(). If mapping.x_axis_tick_format is 'abbreviated_month', format x-axis tick labels to show abbreviated month names (Jan, Feb, etc) positioned at the start of each month. If chart.show_data_labels is true, display the numeric values directly on bars (for bar/line charts) or slices (for pie charts). If chart.legend_position is provided, set the legend position to that value (top, bottom, left, right). If chart.animation_duration is present, set animations to that millisecond duration (0 disables animation). If chart.y_axis_min or chart.y_axis_max is present, set the y-axis minimum and/or maximum values accordingly. If options.border_radius is present and chart type is bar, apply rounded corners to bars with that radius value. If options.point_style is present, use that shape (circle, rect, triangle, star, etc.) for data point markers on scatter and line charts. If chart.show_grid is false, hide the grid by setting grid.display to false on all scales. If appearance.grid_style or chart.grid_style is present, apply color, borderWidth (width), and borderDash (dash_pattern) to grid lines. If mapping.labelTemplate is present, build display labels from it by replacing {fieldName} placeholders from each row, falling back to data_source.proc_params when needed. Use those computed labels for pie chart legend labels and tooltip labels, and for other chart types where a display label is needed."
           }
         ]
       },
@@ -473,6 +537,52 @@ function applyProfessionalTheme(html: string, request: ChartRequest): string {
   return themed;
 }
 
+function ensureChartJsTimeAdapter(html: string): string {
+  const usesTimeScale = /type:\s*['"]time['"]/.test(html);
+  const hasAdapter = /chartjs-adapter-date-fns|chartjs-adapter-luxon|chartjs-adapter-moment/i.test(html);
+
+  if (!usesTimeScale || hasAdapter) {
+    return html;
+  }
+
+  return html.replace(
+    /<script\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js[^>]*><\/script>/i,
+    (match) => `${match}\n  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>`
+  );
+}
+
+function normalizeAbbreviatedMonthTicks(html: string): string {
+  const fragileCallbackPattern =
+    /if \(xTickFormat === 'abbreviated_month'\) \{\s*const d = new Date\(value\);\s*if \(d\.getDate\(\) === 1\) return monthFmt\.format\(d\);\s*return '';\s*\}/g;
+
+  let normalized = html.replace(
+    fragileCallbackPattern,
+    [
+      "if (xTickFormat === 'abbreviated_month') {",
+      "                    const label = typeof this.getLabelForValue === 'function' ? this.getLabelForValue(value) : String(value);",
+      "                    const d = new Date(label);",
+      "                    if (!Number.isFinite(d.getTime())) return '';",
+      "                    const prevLabel = Number(value) > 0 && typeof this.getLabelForValue === 'function' ? this.getLabelForValue(Number(value) - 1) : null;",
+      "                    const prev = prevLabel ? new Date(prevLabel) : null;",
+      "                    const monthChanged = !prevLabel || !prev || !Number.isFinite(prev.getTime()) || prev.getMonth() !== d.getMonth() || prev.getFullYear() !== d.getFullYear();",
+      "                    return monthChanged ? monthFmt.format(d) : '';",
+      "                  }"
+    ].join("\n")
+  );
+
+  normalized = normalized.replace(
+    /time:\s*\{\s*unit:\s*'day'\s*\},/g,
+    "time: mapping.x_axis_tick_format === 'abbreviated_month' ? { unit: 'month' } : { unit: 'day' },"
+  );
+
+  normalized = normalized.replace(
+    /\.map\(p => \(\{ x: p\.xRaw, y: p\.y, _label:/g,
+    ".map(p => ({ x: new Date(p.xRaw).getTime(), y: p.y, _label:"
+  );
+
+  return normalized;
+}
+
 function buildRequestUrl(request: ChartRequest): string {
   const endpoint = request.data_source.endpoint || "/api/stored-proc";
   const method = (request.data_source.http_method || "POST").toUpperCase();
@@ -514,6 +624,9 @@ async function main(): Promise<void> {
   validateRequiredMappings(chartRequest);
   validateScatterNumericMapping(chartRequest);
 
+  const colorLookup = loadColorLookup();
+  const resolvedChartRequest = resolveAppearanceColors(chartRequest, colorLookup);
+
   const endpoint = process.env.CODEX_API_URL ?? "https://api.openai.com/v1/responses";
   const model = process.env.CODEX_MODEL ?? "gpt-5.3-codex";
   const apiKey = process.env.OPENAI_API_KEY ?? process.env.OPEN_AI_KEY;
@@ -522,11 +635,13 @@ async function main(): Promise<void> {
     fail("OPENAI_API_KEY (or OPEN_AI_KEY) is not set.");
   }
 
-  const payload = buildCodexPayload(chartRequest, model);
+  const payload = buildCodexPayload(resolvedChartRequest, model);
   const result = await postToCodexApi(endpoint, apiKey, payload);
   const html = extractHtmlFromResponse(result);
-  const withTransport = applyHtmlTransportOverrides(html, chartRequest);
-  const finalHtml = applyProfessionalTheme(withTransport, chartRequest);
+  const withAdapter = ensureChartJsTimeAdapter(html);
+  const withMonthTicks = normalizeAbbreviatedMonthTicks(withAdapter);
+  const withTransport = applyHtmlTransportOverrides(withMonthTicks, resolvedChartRequest);
+  const finalHtml = applyProfessionalTheme(withTransport, resolvedChartRequest);
 
   const resolvedOutPath = path.resolve(process.cwd(), outPath);
   fs.writeFileSync(resolvedOutPath, finalHtml, "utf8");

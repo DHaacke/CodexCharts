@@ -13,6 +13,8 @@
     "run:chart": "node dist/send-chart-request.js",
     "run:line": "node dist/send-chart-request.js --request chart-contract/examples/line.stored-proc.example.json --out chart-contract/output/line-chart.html",
     "run:line:all": "node scripts/run-line-all.js --script run:line --output chart-contract/output/line-chart.html --label line",
+    "run:line-series": "node dist/send-chart-request.js --request chart-contract/examples/line.series.example.json --out chart-contract/output/line-series-chart.html",
+    "run:line-series:all": "node scripts/run-line-all.js --script run:line-series --output chart-contract/output/line-series-chart.html --label line",
     "run:bar": "node dist/send-chart-request.js --request chart-contract/examples/bar.grouped.example.json --out chart-contract/output/bar-chart.html",
     "run:bar:all": "node scripts/run-line-all.js --script run:bar --output chart-contract/output/bar-chart.html --label bar",
     "run:pie": "node dist/send-chart-request.js --request chart-contract/examples/pie.example.json --out chart-contract/output/pie-chart.html",

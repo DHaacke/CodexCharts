@@ -10,8 +10,16 @@
     "type": "scatter",
     "title": "{species} {year} Length vs Weight {section}",
     "show_legend": true,
+    "show_grid": true,
     "x_axis_label": "Length (mm)",
-    "y_axis_label": "Weight (g)"
+    "y_axis_label": "Weight (g)",
+    "grid_style": {
+      "color": "rgba(24,79,63,0.15)",
+      "width": 1
+    },
+    "show_data_labels": false,
+    "legend_position": "top",
+    "animation_duration": 750
   },
   "data_source": {
     "proc_schema": "ri",
@@ -30,17 +38,20 @@
     "yField": "weight"
   },
   "options": {
-    "pointRadius": 3
+    "pointRadius": 3,
+    "point_style": "circle"
   },
   "appearance": {
-    "page_background": "linear-gradient(145deg, #d7e7df, #bfd6ce)",
-    "card_background": "rgba(243,250,246,0.82)",
-    "title_color": "#184f3f",
-    "text_color": "#2f6f5d",
-    "grid_color": "rgba(24,79,63,0.2)",    "x_axis_label_color": "#184f3f",
-    "x_axis_value_color": "#2f6f5d",
-    "y_axis_label_color": "#184f3f",
-    "y_axis_value_color": "#2f6f5d",
-    "legend_text_color": "#184f3f",    "series_colors": ["#4e79a7", "#f28e2b", "#59a14f"]
+    "page_background": "linear-gradient(145deg, softmintlight, softmint)",
+    "card_background": "cardlight",
+    "title_color": "forestdark",
+    "text_color": "forestsoft",
+    "grid_color": "rgba(24,79,63,0.2)",
+    "x_axis_label_color": "forestdark",
+    "x_axis_value_color": "forestsoft",
+    "y_axis_label_color": "forestdark",
+    "y_axis_value_color": "forestsoft",
+    "legend_text_color": "forestdark",
+    "series_colors": ["chartblue", "chartorange", "chartgreen"]
   }
 }

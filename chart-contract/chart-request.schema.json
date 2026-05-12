@@ -52,9 +52,27 @@
         "title": { "type": "string" },
         "subtitle": { "type": "string" },
         "show_legend": { "type": "boolean" },
+        "show_grid": { "type": "boolean" },
         "x_axis_label": { "type": "string" },
         "y_axis_label": { "type": "string" },
-        "stacked": { "type": "boolean" }
+        "stacked": { "type": "boolean" },
+        "grid_style": {
+          "type": "object",
+          "properties": {
+            "color": { "type": "string" },
+            "width": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "dash_pattern": { "type": "array", "items": { "type": "number" } }
+          },
+          "additionalProperties": false
+        },
+        "show_data_labels": { "type": "boolean" },
+        "legend_position": {
+          "type": "string",
+          "enum": ["top", "bottom", "left", "right"]
+        },
+        "animation_duration": { "type": "integer", "minimum": 0 },
+        "y_axis_min": { "type": "number" },
+        "y_axis_max": { "type": "number" }
       },
       "additionalProperties": true
     },
@@ -84,12 +102,27 @@
         "groupField": { "type": "string" },
         "categoryField": { "type": "string" },
         "valueField": { "type": "string" },
-        "labelTemplate": { "type": "string" }
+        "labelTemplate": { "type": "string" },
+        "x_axis_tick_format": { "type": "string", "description": "Optional format hint for x-axis ticks: 'abbreviated_month' for month start labels, or other date format directives." }
       },
       "additionalProperties": true
     },
     "options": {
       "type": "object",
+      "properties": {
+        "tension": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pointRadius": { "type": "integer", "minimum": 0 },
+        "pointHoverRadius": { "type": "integer", "minimum": 0 },
+        "borderWidth": { "type": "number", "minimum": 0 },
+        "fill": { "type": "boolean" },
+        "stacked": { "type": "boolean" },
+        "indexAxis": { "type": "string", "enum": ["x", "y"] },
+        "border_radius": { "type": "integer", "minimum": 0 },
+        "point_style": {
+          "type": "string",
+          "enum": ["circle", "cross", "crossRot", "dash", "line", "rect", "rectRot", "star", "triangle"]
+        }
+      },
       "additionalProperties": true
     },
     "appearance": {
@@ -106,6 +139,15 @@
         "y_axis_label_color": { "type": "string" },
         "y_axis_value_color": { "type": "string" },
         "legend_text_color": { "type": "string" },
+        "grid_style": {
+          "type": "object",
+          "properties": {
+            "color": { "type": "string" },
+            "width": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "dash_pattern": { "type": "array", "items": { "type": "number" } }
+          },
+          "additionalProperties": false
+        },
         "series_colors": {
           "type": "array",
           "items": { "type": "string" },

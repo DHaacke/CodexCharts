@@ -151,3 +151,5 @@ const colors = {
   "chartgreen": "#59a14f",
   "chartmauve": "#af7aa1"
 };
+
+module.exports = colors;

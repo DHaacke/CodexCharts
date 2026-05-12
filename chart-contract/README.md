@@ -74,22 +74,24 @@ Add an optional `appearance` object at the top level of your request to control 
 - `legend_text_color`: color for legend labels and text (defaults to dark forest #184f3f).
 - `series_colors`: array of dataset colors (applied in order, cycled as needed).
 
+Named colors are supported and resolved via `scripts/colors.js` (for example `forestdark`, `forestsoft`, `chartblue`, `cardlight`). You can also keep using standard CSS colors or direct hex/rgba values.
+
 Example:
 
 ```json
 "appearance": {
-  "page_background": "linear-gradient(145deg, #d7e7df, #bfd6ce)",
-  "card_background": "rgba(243,250,246,0.82)",
-  "title_color": "#184f3f",
-  "text_color": "#2f6f5d",
-  "axis_color": "#184f3f",
+  "page_background": "linear-gradient(145deg, softmintlight, softmint)",
+  "card_background": "cardlight",
+  "title_color": "forestdark",
+  "text_color": "forestsoft",
+  "axis_color": "forestdark",
   "grid_color": "rgba(24,79,63,0.2)",
-  "x_axis_label_color": "#184f3f",
-  "x_axis_value_color": "#2f6f5d",
-  "y_axis_label_color": "#184f3f",
-  "y_axis_value_color": "#2f6f5d",
-  "legend_text_color": "#184f3f",
-  "series_colors": ["#4e79a7", "#f28e2b", "#59a14f", "#e15759"]
+  "x_axis_label_color": "forestdark",
+  "x_axis_value_color": "forestsoft",
+  "y_axis_label_color": "forestdark",
+  "y_axis_value_color": "forestsoft",
+  "legend_text_color": "forestdark",
+  "series_colors": ["chartblue", "chartorange", "chartgreen", "chartmauve"]
 }
 ```
 

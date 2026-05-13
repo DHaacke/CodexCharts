@@ -3,6 +3,34 @@ CODEXCHARTS PROJECT CHECKPOINT
 Checkpoint Date: May 10, 2026 (End of Session)
 ================================================================================
 
+LATEST UPDATE: May 12, 2026 (Checkpoint Saved)
+================================================================================
+
+SESSION STATUS: In progress, checkpoint captured
+
+CHECKPOINT SNAPSHOT (MAY 12, 2026):
+  1) XLSX template flow expanded across chart types
+    - Added new XLSX example requests for bar, pie, and scatter
+    - Added dedicated Python fillers for bar/pie/scatter templates
+    - Added template generation scripts for single and batch creation
+
+  2) Contract and CLI wiring updated for template-backed exports
+    - Updated schema and request handling for XLSX/template options
+    - Updated package scripts and documentation for new export flow
+    - Updated line-series XLSX example to align with template behavior
+
+  3) Artifacts generated during this checkpoint
+    - New timestamped XLSX output file created in output folder
+    - New templates directory added under chart-contract
+
+  4) Known local workspace notes
+    - scripts/__pycache__/ currently present as untracked local files
+    - Existing checkpoint history retained below for full continuity
+
+--------------------------------------------------------------------------------
+
+PREVIOUS SESSION ENTRY:
+
 LATEST UPDATE: May 12, 2026 (End of Session)
 ================================================================================
 
@@ -37,6 +65,20 @@ COMPLETED THIS SESSION:
     - Added --open-output flag (alias: --open-latest)
     - Supported by direct generator runs and :all wrapper scripts
     - Opens the newly generated timestamped output file
+
+  7) Excel chart template created
+    - Added chart-contract/templates/line-series-template.xlsx
+    - Embedded editable line chart bound to Data sheet rows
+    - Supports A,B,C required with optional D third series
+    - Added scripts/generate_excel_template.py for regeneration
+
+  8) Template-backed XLSX export wired into CLI
+    - XLSX line-series export can now write directly into template workbook
+    - Added scripts/fill_excel_template.py for template population + chart refresh
+    - Added schema support for export_options.xlsx.template_path/template_sheet_name
+    - Added safe fallback to plain XLSX if template export tooling is unavailable
+    - Added date axis month labels (mmm) and y-axis title "Flow (cfs)" for template chart outputs
+    - Fixed Excel repair warning by removing problematic workbook named ranges from template
 
 CURRENT OUTPUT MODE:
   - HTML (Codex renderer)

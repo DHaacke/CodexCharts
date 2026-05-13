@@ -1,0 +1,44 @@
+{
+  "request_version": "1.0",
+  "output": {
+    "format": "xlsx",
+    "theme": "light",
+    "container_id": "chart-root",
+    "width": 1100,
+    "height": 680
+  },
+  "chart": {
+    "type": "pie",
+    "title": "{species} {from_year}-{to_year} Abundance Share",
+    "show_legend": true,
+    "legend_position": "right",
+    "x_axis_label": "",
+    "y_axis_label": ""
+  },
+  "data_source": {
+    "proc_schema": "ri",
+    "proc_name": "FWPSpeciesCountByYear",
+    "endpoint": "http://localhost:3000/api/stored-proc",
+    "http_method": "GET",
+    "proc_params": {
+      "from_year": "2024",
+      "to_year": "2026"
+    },
+    "result_set_index": 0
+  },
+  "mapping": {
+    "categoryField": "species",
+    "valueField": "abundance",
+    "labelTemplate": "{species} {year}"
+  },
+  "export_options": {
+    "column_order": ["species", "abundance", "year"],
+    "include_remaining_columns": true,
+    "xlsx": {
+      "template_path": "chart-contract/templates/pie-template.xlsx",
+      "template_sheet_name": "Data",
+      "result_set_indices": [0]
+    }
+  },
+  "notes": "Template-backed XLSX export for pie chart with embedded editable Excel chart."
+}

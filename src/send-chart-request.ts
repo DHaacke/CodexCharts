@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 import Ajv2020 from "ajv/dist/2020";
 import dotenv from "dotenv";
 import * as XLSX from "xlsx";
@@ -62,6 +63,8 @@ interface ChartRequest {
       result_set_indices?: number[];
       sheet_names?: Record<string, string>;
       sheet_name_prefix?: string;
+      template_path?: string;
+      template_sheet_name?: string;
     };
   };
 }
@@ -958,6 +961,254 @@ function addTimestampToOutputPath(outPath: string, date = new Date()): string {
   return path.join(parsed.dir, withStamp);
 }
 
+function getTemplatePythonExecutable(): string | undefined {
+  const candidates = [
+    path.resolve(process.cwd(), ".venv/bin/python"),
+    path.resolve(process.cwd(), ".venv/bin/python3"),
+    process.env.PYTHON,
+    "python3",
+    "python"
+  ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+  for (const candidate of candidates) {
+    if (candidate.includes(path.sep) && !fs.existsSync(candidate)) {
+      continue;
+    }
+    return candidate;
+  }
+
+  return undefined;
+}
+
+function shouldUseTemplateXlsxExport(request: ChartRequest, sheetEntriesCount: number): boolean {
+  if (request.output.format !== "xlsx") {
+    return false;
+  }
+
+  if (sheetEntriesCount !== 1) {
+    return false;
+  }
+
+  const explicitTemplatePath = request.export_options?.xlsx?.template_path;
+  if (explicitTemplatePath && explicitTemplatePath.trim().length > 0) {
+    return true;
+  }
+
+  const defaultTemplatePath = getDefaultTemplatePath(request);
+  return fs.existsSync(defaultTemplatePath);
+}
+
+function getTemplatePath(request: ChartRequest): string {
+  const configured = request.export_options?.xlsx?.template_path;
+  if (configured && configured.trim().length > 0) {
+    return path.resolve(process.cwd(), configured);
+  }
+  return getDefaultTemplatePath(request);
+}
+
+function getDefaultTemplatePath(request: ChartRequest): string {
+  const templateByType: Record<ChartRequest["chart"]["type"], string> = {
+    line: "chart-contract/templates/line-series-template.xlsx",
+    bar: "chart-contract/templates/bar-grouped-template.xlsx",
+    pie: "chart-contract/templates/pie-template.xlsx",
+    scatter: "chart-contract/templates/scatter-template.xlsx"
+  };
+  return path.resolve(process.cwd(), templateByType[request.chart.type]);
+}
+
+function getTemplateFillScriptPath(request: ChartRequest): string {
+  const scriptByType: Record<ChartRequest["chart"]["type"], string> = {
+    line: "scripts/fill_excel_template.py",
+    bar: "scripts/fill_excel_template_bar.py",
+    pie: "scripts/fill_excel_template_pie.py",
+    scatter: "scripts/fill_excel_template_scatter.py"
+  };
+  return path.resolve(process.cwd(), scriptByType[request.chart.type]);
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  return null;
+}
+
+function buildTemplateTabularData(
+  request: ChartRequest,
+  rows: DataRow[]
+): { headers: string[]; rows: Array<Record<string, string | number | null>> } {
+  const mapping = request.mapping;
+  const xField = mapping.xField;
+  const yField = mapping.yField;
+  const groupField = mapping.groupField;
+  const categoryField = mapping.categoryField;
+  const valueField = mapping.valueField;
+
+  if (request.chart.type === "pie" && categoryField && valueField) {
+    const headers = ["label", "value"];
+    const tabularRows = rows.map((row) => {
+      const labelValue = row[categoryField];
+      const out: Record<string, string | number | null> = {
+        label: labelValue == null ? null : String(labelValue),
+        value: toNumberOrNull(row[valueField])
+      };
+      return out;
+    });
+    return { headers, rows: tabularRows };
+  }
+
+  if (request.chart.type === "scatter" && xField && yField && !groupField) {
+    const headers = ["x", "Series"];
+    const tabularRows = rows.map((row) => {
+      const out: Record<string, string | number | null> = {
+        x: toNumberOrNull(row[xField]),
+        Series: toNumberOrNull(row[yField])
+      };
+      return out;
+    });
+    return { headers, rows: tabularRows };
+  }
+
+  const effectiveXField = xField ?? (request.chart.type === "bar" ? categoryField : undefined);
+  const effectiveYField = yField ?? (request.chart.type === "bar" ? valueField : undefined);
+
+  if (!effectiveXField || !effectiveYField) {
+    const headers = getColumnHeaders(rows, request).slice(0, 4);
+    const tabularRows = rows.map((row) => {
+      const out: Record<string, string | number | null> = {};
+      headers.forEach((h) => {
+        const value = row[h];
+        out[h] = value == null ? null : (typeof value === "number" ? value : String(value));
+      });
+      return out;
+    });
+    return { headers, rows: tabularRows };
+  }
+
+  const xValues: string[] = [];
+  const xSeen = new Set<string>();
+  const groupValues: string[] = [];
+  const groupSeen = new Set<string>();
+
+  rows.forEach((row) => {
+    const xRaw = row[effectiveXField];
+    if (xRaw != null) {
+      const x = String(xRaw);
+      if (!xSeen.has(x)) {
+        xSeen.add(x);
+        xValues.push(x);
+      }
+    }
+
+    if (groupField) {
+      const gRaw = row[groupField];
+      if (gRaw != null) {
+        const g = String(gRaw);
+        if (!groupSeen.has(g)) {
+          groupSeen.add(g);
+          groupValues.push(g);
+        }
+      }
+    }
+  });
+
+  const effectiveGroups = (groupValues.length > 0 ? groupValues : ["Series"])
+    .slice(0, 3);
+
+  const byX: Record<string, Record<string, number | null>> = {};
+  xValues.forEach((x) => {
+    byX[x] = {};
+    effectiveGroups.forEach((g) => {
+      byX[x][g] = null;
+    });
+  });
+
+  rows.forEach((row) => {
+    const xRaw = row[effectiveXField];
+    if (xRaw == null) {
+      return;
+    }
+    const x = String(xRaw);
+    if (!byX[x]) {
+      return;
+    }
+
+    const g = groupField ? String(row[groupField] ?? "Series") : "Series";
+    if (!effectiveGroups.includes(g)) {
+      return;
+    }
+
+    byX[x][g] = toNumberOrNull(row[effectiveYField]);
+  });
+
+  const headers = ["date", ...effectiveGroups];
+  const tabularRows = xValues.map((x) => {
+    const out: Record<string, string | number | null> = { date: x };
+    effectiveGroups.forEach((g) => {
+      out[g] = byX[x]?.[g] ?? null;
+    });
+    return out;
+  });
+
+  return { headers, rows: tabularRows };
+}
+
+function writeXlsxFromTemplate(
+  request: ChartRequest,
+  rows: DataRow[],
+  outPath: string
+): void {
+  const templatePath = getTemplatePath(request);
+  if (!fs.existsSync(templatePath)) {
+    fail(`Template workbook not found: ${templatePath}`);
+  }
+
+  const python = getTemplatePythonExecutable();
+  if (!python) {
+    fail("Could not determine a Python executable for template-based XLSX export.");
+  }
+
+  const payload = {
+    templatePath,
+    outputPath: outPath,
+    sheetName: request.export_options?.xlsx?.template_sheet_name || "Data",
+    ...buildTemplateTabularData(request, rows)
+  };
+
+  const payloadPath = path.join(
+    os.tmpdir(),
+    `codexcharts-template-payload-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
+  );
+
+  try {
+    fs.writeFileSync(payloadPath, JSON.stringify(payload), "utf8");
+
+    const scriptPath = getTemplateFillScriptPath(request);
+    if (!fs.existsSync(scriptPath)) {
+      fail(`Template fill script not found: ${scriptPath}`);
+    }
+
+    const result = spawnSync(python, [scriptPath, "--payload", payloadPath], {
+      encoding: "utf8"
+    });
+
+    if (result.status !== 0) {
+      const errorText = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+      fail(`Template XLSX generation failed${errorText ? `:\n${errorText}` : "."}`);
+    }
+  } finally {
+    if (fs.existsSync(payloadPath)) {
+      fs.unlinkSync(payloadPath);
+    }
+  }
+}
+
 function tryOpenFile(filePath: string): void {
   const platform = process.platform;
   let command = "";
@@ -1034,11 +1285,25 @@ async function main(): Promise<void> {
         rows: [],
         headers: getColumnHeaders([], resolvedChartRequest)
       };
-      const singleSheetName =
-        resolvedChartRequest.export_options?.xlsx?.sheet_name?.trim() ||
-        resolvedChartRequest.export_options?.xlsx?.sheet_names?.[String(first.resultSetIndex)] ||
-        "Data";
-      writeXlsx(first.rows, first.headers, resolvedOutPath, singleSheetName);
+      if (shouldUseTemplateXlsxExport(resolvedChartRequest, sheetEntries.length)) {
+        try {
+          writeXlsxFromTemplate(resolvedChartRequest, first.rows, resolvedOutPath);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(`Warning: Template XLSX export failed, falling back to plain workbook. ${message}`);
+          const singleSheetName =
+            resolvedChartRequest.export_options?.xlsx?.sheet_name?.trim() ||
+            resolvedChartRequest.export_options?.xlsx?.sheet_names?.[String(first.resultSetIndex)] ||
+            "Data";
+          writeXlsx(first.rows, first.headers, resolvedOutPath, singleSheetName);
+        }
+      } else {
+        const singleSheetName =
+          resolvedChartRequest.export_options?.xlsx?.sheet_name?.trim() ||
+          resolvedChartRequest.export_options?.xlsx?.sheet_names?.[String(first.resultSetIndex)] ||
+          "Data";
+        writeXlsx(first.rows, first.headers, resolvedOutPath, singleSheetName);
+      }
     } else {
       writeXlsxMultiSheet(sheetEntries, resolvedChartRequest, resolvedOutPath);
     }

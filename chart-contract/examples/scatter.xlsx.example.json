@@ -1,0 +1,48 @@
+{
+  "request_version": "1.0",
+  "output": {
+    "format": "xlsx",
+    "theme": "light",
+    "container_id": "chart-root",
+    "width": 1280,
+    "height": 760
+  },
+  "chart": {
+    "type": "scatter",
+    "title": "{species} {year} Length vs Weight {section}",
+    "show_legend": true,
+    "show_grid": true,
+    "x_axis_label": "Length (mm)",
+    "y_axis_label": "Weight (g)"
+  },
+  "data_source": {
+    "proc_schema": "ri",
+    "proc_name": "FWPSectionSpeciesLengthWeightScatterByYear",
+    "endpoint": "http://localhost:3000/api/stored-proc",
+    "http_method": "GET",
+    "proc_params": {
+      "year": 2026,
+      "section": "Bighorn Section (Upper)",
+      "species": "RB"
+    },
+    "result_set_index": 0
+  },
+  "mapping": {
+    "xField": "length",
+    "yField": "weight"
+  },
+  "options": {
+    "pointRadius": 3,
+    "point_style": "circle"
+  },
+  "export_options": {
+    "column_order": ["length", "weight"],
+    "include_remaining_columns": true,
+    "xlsx": {
+      "template_path": "chart-contract/templates/scatter-template.xlsx",
+      "template_sheet_name": "Data",
+      "result_set_indices": [0]
+    }
+  },
+  "notes": "Template-backed XLSX export for scatter chart with embedded editable Excel chart."
+}

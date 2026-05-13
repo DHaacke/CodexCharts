@@ -1,0 +1,51 @@
+{
+  "request_version": "1.0",
+  "output": {
+    "format": "xlsx",
+    "theme": "light",
+    "container_id": "chart-root",
+    "width": 1280,
+    "height": 760
+  },
+  "chart": {
+    "type": "bar",
+    "title": "{species} {from_year}-{to_year} Survey by Year",
+    "show_legend": true,
+    "show_grid": true,
+    "x_axis_label": "Year",
+    "y_axis_label": "Abundance",
+    "stacked": true
+  },
+  "data_source": {
+    "proc_schema": "ri",
+    "proc_name": "FWPSpeciesCountByYear",
+    "endpoint": "http://localhost:3000/api/stored-proc",
+    "http_method": "GET",
+    "proc_params": {
+      "from_year": "2024",
+      "to_year": "2026"
+    },
+    "result_set_index": 0
+  },
+  "mapping": {
+    "xField": "year",
+    "yField": "abundance",
+    "categoryField": "year",
+    "valueField": "abundance",
+    "groupField": "species"
+  },
+  "options": {
+    "stacked": true,
+    "indexAxis": "x"
+  },
+  "export_options": {
+    "column_order": ["year", "species", "abundance"],
+    "include_remaining_columns": true,
+    "xlsx": {
+      "template_path": "chart-contract/templates/bar-grouped-template.xlsx",
+      "template_sheet_name": "Data",
+      "result_set_indices": [0]
+    }
+  },
+  "notes": "Template-backed XLSX export for grouped bar chart with embedded editable Excel chart."
+}

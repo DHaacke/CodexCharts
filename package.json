@@ -21,10 +21,17 @@
     "run:line-series:xlsx:all": "node scripts/run-line-all.js --script run:line-series:xlsx --output chart-contract/output/line-series-data.xlsx --label line-series-xlsx",
     "run:bar": "node dist/send-chart-request.js --request chart-contract/examples/bar.grouped.example.json --out chart-contract/output/bar-chart.html",
     "run:bar:all": "node scripts/run-line-all.js --script run:bar --output chart-contract/output/bar-chart.html --label bar",
+    "run:bar:xlsx": "node dist/send-chart-request.js --request chart-contract/examples/bar.grouped.xlsx.example.json --out chart-contract/output/bar-data.xlsx",
+    "run:bar:xlsx:all": "node scripts/run-line-all.js --script run:bar:xlsx --output chart-contract/output/bar-data.xlsx --label bar-xlsx",
     "run:pie": "node dist/send-chart-request.js --request chart-contract/examples/pie.example.json --out chart-contract/output/pie-chart.html",
     "run:pie:all": "node scripts/run-line-all.js --script run:pie --output chart-contract/output/pie-chart.html --label pie",
+    "run:pie:xlsx": "node dist/send-chart-request.js --request chart-contract/examples/pie.xlsx.example.json --out chart-contract/output/pie-data.xlsx",
+    "run:pie:xlsx:all": "node scripts/run-line-all.js --script run:pie:xlsx --output chart-contract/output/pie-data.xlsx --label pie-xlsx",
     "run:scatter": "node dist/send-chart-request.js --request chart-contract/examples/scatter.example.json --out chart-contract/output/scatter-chart.html",
-    "run:scatter:all": "node scripts/run-line-all.js --script run:scatter --output chart-contract/output/scatter-chart.html --label scatter"
+    "run:scatter:all": "node scripts/run-line-all.js --script run:scatter --output chart-contract/output/scatter-chart.html --label scatter",
+    "run:scatter:xlsx": "node dist/send-chart-request.js --request chart-contract/examples/scatter.xlsx.example.json --out chart-contract/output/scatter-data.xlsx",
+    "run:scatter:xlsx:all": "node scripts/run-line-all.js --script run:scatter:xlsx --output chart-contract/output/scatter-data.xlsx --label scatter-xlsx",
+    "generate:templates:xlsx": "python3 scripts/generate_excel_templates.py"
   },
   "dependencies": {
     "ajv": "^8.17.1",

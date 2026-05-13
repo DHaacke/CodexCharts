@@ -66,13 +66,11 @@
     "column_order": ["date", "series", "cfs"],
     "include_remaining_columns": true,
     "xlsx": {
-      "result_set_indices": [0, 1],
-      "sheet_names": {
-        "0": "WaterYear",
-        "1": "Average"
-      },
+      "template_path": "chart-contract/templates/line-series-template.xlsx",
+      "template_sheet_name": "Data",
+      "result_set_indices": [0],
       "sheet_name_prefix": "Result"
     }
   },
-  "notes": "Excel export example: ordered columns + multi-sheet workbook using result sets 0 and 1."
+  "notes": "Excel export example: writes stored-procedure rows into template workbook with embedded editable chart."
 }

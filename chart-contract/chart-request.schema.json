@@ -175,6 +175,8 @@
           "type": "object",
           "properties": {
             "sheet_name": { "type": "string" },
+            "template_path": { "type": "string" },
+            "template_sheet_name": { "type": "string" },
             "result_set_indices": {
               "type": "array",
               "items": { "type": "integer", "minimum": 0 },
